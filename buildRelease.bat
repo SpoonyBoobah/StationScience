@@ -26,8 +26,8 @@ rem README is the readme file
 set GAMEDIR=StationScience
 set GAMEDATA="GameData\"
 set VERSIONFILE=%GAMEDIR%.version
-set LICENSE=License.txt
-set README=ReadMe.md
+set LICENSE=LICENSE-StationScience.txt
+set README=README-StationScience.txt
 
 set RELEASEDIR=d:\Users\jbb\release
 set ZIP="c:\Program Files\7-zip\7z.exe"
@@ -36,7 +36,6 @@ rem Copy files to GameData locations
 
 copy /Y "%1%2" "%GAMEDATA%\%GAMEDIR%\Plugins"
 copy /Y %VERSIONFILE% %GAMEDATA%\%GAMEDIR%
-copy /Y ..\MiniAVC.dll %GAMEDATA%\%GAMEDIR%
 
 if "%LICENSE%" NEQ "" copy /y  %LICENSE% %GAMEDATA%\%GAMEDIR%
 if "%README%" NEQ "" copy /Y %README% %GAMEDATA%\%GAMEDIR%

@@ -45,3 +45,13 @@ Changelog
 		Added a full set of science reports for Experiment: Prograde Kuarqs.
 		Added Retrograde and Eccentric Kuarqs reports
 
+2.6.1.1
+	Fixed experiments so new exps will work via contracts
+	Added AssemblyFileVersion
+	Updated project file
+
+2.6.1.2
+	Thanks to github user ArcaneZedric
+		Update Arcanum experiments
+		Add localization entries for the Arcanum experiments
+		Fix sizes and node locations for Arcanum experiments
