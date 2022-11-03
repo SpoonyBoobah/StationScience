@@ -7,10 +7,10 @@ rem GAMEDATA is the name of the local GameData
 rem VERSIONFILE is the name of the version file, usually the same as GAMEDATA,
 rem    but not always
 
-set H=%KSPDIR%
+set H=E:\SteamLibrary\steamapps\common\KSP
 set GAMEDIR=StationScience
 set GAMEDATA="GameData"
-set VERSIONFILE=%GAMEDIR%.version
+set VERSIONFILE=StationScience.version
 
 set DP0=r:\dp0\kspdev
 
