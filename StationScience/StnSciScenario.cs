@@ -70,7 +70,6 @@ namespace StationScience
     {
         public void Load(ConfigNode node)
         {
-            Clear();
             foreach (ConfigNode.Value val in node.values)
             {
                 try
@@ -107,7 +106,6 @@ namespace StationScience
 
         public void Load(ConfigNode node)
         {
-            Clear();
             foreach (ConfigNode.Value val in node.values)
             {
                 if(!this.ContainsKey(val.name))
