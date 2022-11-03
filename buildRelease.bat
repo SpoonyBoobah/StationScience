@@ -25,7 +25,7 @@ rem README is the readme file
 
 set GAMEDIR=StationScience
 set GAMEDATA="GameData\"
-set VERSIONFILE=%GAMEDIR%.version
+set VERSIONFILE=StationScience.version
 set LICENSE=LICENSE-StationScience.txt
 set README=README-StationScience.txt
 
