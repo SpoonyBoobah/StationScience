@@ -30,6 +30,7 @@ namespace StationScience
         public const string EUREKAS = "Eurekas";
         public const string KUARQS = "Kuarqs";
         public const string BIOPRODUCTS = "Bioproducts";
+        public const string SOLUTIONS = "Solutions";
 
 
         internal class Requirement
@@ -57,7 +58,7 @@ namespace StationScience
 
         internal Dictionary<string, Requirement> requirements = new Dictionary<string, Requirement>();
 
-      [KSPField(isPersistant = false)]
+        [KSPField(isPersistant = false)]
         public int eurekasRequired;
 
         [KSPField(isPersistant = false)]
@@ -65,6 +66,9 @@ namespace StationScience
 
         [KSPField(isPersistant = false)]
         public int bioproductsRequired;
+
+        [KSPField(isPersistant = false)]
+        public int solutionsRequired;
 
 
         [KSPField(isPersistant = false)]
@@ -126,6 +130,7 @@ namespace StationScience
             double numEurekas = GetResourceAmount(EUREKAS);
             double numKuarqs = GetResourceAmount(KUARQS);
             double numBioproducts = GetResourceAmount(BIOPRODUCTS);
+            double numSolutions = GetResourceAmount(SOLUTIONS);
             foreach (var r in requirements)
             {
                 double num = GetResourceAmount(r.Value.name);
@@ -189,6 +194,8 @@ namespace StationScience
                 requirements.Add(KUARQS, new Requirement(KUARQS, kuarqsRequired));
             if (bioproductsRequired > 0 && !requirements.ContainsKey(BIOPRODUCTS))
                 requirements.Add(BIOPRODUCTS, new Requirement(BIOPRODUCTS, bioproductsRequired));
+            if (solutionsRequired > 0 && !requirements.ContainsKey(SOLUTIONS))
+                requirements.Add(SOLUTIONS, new Requirement(SOLUTIONS, solutionsRequired));
         }
 
         public override void OnStart(StartState state)
@@ -220,6 +227,8 @@ namespace StationScience
                     currentStatus = Status.Storage;
                 else if (GetResource(EUREKAS) != null)
                     currentStatus = Status.Running;
+                else if (GetResource(SOLUTIONS) != null)
+                    currentStatus = Status.Running;
                 else
                     currentStatus = Status.Idle;
 
@@ -244,16 +253,18 @@ namespace StationScience
             if (CheckBoring(vessel, true)) return;
             PartResource eurekas = null;
             PartResource bioproducts = null;
+            PartResource solutions = null;
             foreach (var r in requirements)
             {
                 PartResource pr = SetResourceMaxAmount(r.Value.name, r.Value.amount);
                 if (r.Value.name == EUREKAS) eurekas = pr;
                 if (r.Value.name == BIOPRODUCTS) bioproducts = pr;
+                if (r.Value.name == SOLUTIONS) solutions = pr;
             }
             //PartResource eurekas = SetResourceMaxAmount(EUREKAS, eurekasRequired);
             //PartResource kuarqs = SetResourceMaxAmount(KUARQS, kuarqsRequired);
             //PartResource bioproducts = SetResourceMaxAmount(BIOPRODUCTS, bioproductsRequired);
-            if (eurekas != null && eurekas.amount == 0 && bioproducts != null) bioproducts.amount = 0;
+            if (solutions != null && solutions.amount == 0 && eurekas != null && eurekas.amount == 0 && bioproducts != null) bioproducts.amount = 0;
             Events["StartExperiment"].active = false;
             ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_started"), 6, ScreenMessageStyle.UPPER_CENTER);
 
@@ -353,6 +364,7 @@ namespace StationScience
         {
             StopResearch(EUREKAS);
             StopResearch(KUARQS);
+            StopResearch(SOLUTIONS);
         }
 
         public System.Collections.IEnumerator UpdateStatus()
@@ -365,12 +377,14 @@ namespace StationScience
                 double numKuarqs = GetResourceAmount(KUARQS);
                 double numKuarqsMax = GetResourceMaxAmount(KUARQS);
                 double numBioproducts = GetResourceAmount(BIOPRODUCTS);
+                double numSolutions = GetResourceAmount(SOLUTIONS);
+                double numSolutionsMax = GetResourceMaxAmount(SOLUTIONS);
                 int sciCount = GetScienceCount();
                 Log.Info(part.partInfo.title + " finished: " + Finished());
                 if (!Finished())
                 {
                     Events["DeployExperiment"].active = false;
-                    Events["StartExperiment"].active = (!Inoperable && sciCount == 0 && numEurekasMax == 0 && numKuarqsMax == 0);
+                    Events["StartExperiment"].active = (!Inoperable && sciCount == 0 && numEurekasMax == 0 && numKuarqsMax == 0 && numSolutionsMax == 0);
                 }
                 else
                 {
@@ -380,7 +394,7 @@ namespace StationScience
                 var subject = ScienceHelper.getScienceSubject(experimentID, vessel);
                 string subjectId = ((subject == null) ? "" : subject.id);
                 if(subjectId != "" && last_subjectId != "" && last_subjectId != subjectId &&
-                    (numEurekas > 0 || numKuarqs > 0 || (numBioproducts > 0 && sciCount == 0))) {
+                    (numSolutions > 0 || numEurekas > 0 || numKuarqs > 0 || (numBioproducts > 0 && sciCount == 0))) {
                     ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_locchange", part.partInfo.title), 6, ScreenMessageStyle.UPPER_CENTER);
                     StopResearch();
                     StopResearch(BIOPRODUCTS);
@@ -396,6 +410,14 @@ namespace StationScience
                 {
                     var eurekasModules = vessel.FindPartModulesImplementing<StationScienceModule>();
                     if (eurekasModules == null || eurekasModules.Count() < 1)
+                    {
+                        ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_detatch", part.partInfo.title), 2, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                }
+                if (numSolutions > 0)
+                {
+                    var solutionsModules = vessel.FindPartModulesImplementing<StationScienceModule>();
+                    if (solutionsModules == null || solutionsModules.Count() < 1)
                     {
                         ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_detatch", part.partInfo.title), 2, ScreenMessageStyle.UPPER_CENTER);
                     }
@@ -473,6 +495,8 @@ namespace StationScience
                         ret += Localizer.Format("#autoLOC_StatSci_BioMass", Math.Round( requirements[BIOPRODUCTS].amount /* bioproductsRequired */ * bioproductDensity + part.mass, 2));
                     reqZoo = Localizer.Format("#autoLOC_StatSci_ZooReq");
                 }
+                if (r.Value.name == SOLUTIONS)
+                    reqLab = Localizer.Format("#autoLOC_StatSci_LabReq");
             }
 #if false
             //if (eurekasRequired > 0)
