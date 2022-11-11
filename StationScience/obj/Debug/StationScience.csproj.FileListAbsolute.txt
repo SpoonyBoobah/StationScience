@@ -78,3 +78,6 @@ D:\Github\StationScience\StationScience\obj\Debug\StationScience.csproj.CoreComp
 D:\Github\StationScience\StationScience\obj\Debug\StationScience.csproj.CopyComplete
 D:\Github\StationScience\StationScience\obj\Debug\MOARStationScience.dll
 D:\Github\StationScience\StationScience\obj\Debug\MOARStationScience.pdb
+D:\Github\StationScience\StationScience\bin\Debug\Assembly-CSharp.dll
+D:\Github\StationScience\StationScience\bin\Debug\UnityEngine.CoreModule.dll
+D:\Github\StationScience\StationScience\bin\Debug\UnityEngine.dll
