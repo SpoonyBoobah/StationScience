@@ -18,16 +18,17 @@
 using KSP.Localization;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using UnityEngine;
 
 namespace StationScience
 {
+    // Module for analyzing scientific samples in the game.
     class SampleAnalyzer : ModuleScienceContainer
     {
-        //[KSPEvent(active=true, guiActive=true, guiName="Update")]
-        List<BaseEvent> sampleEvents = new List<BaseEvent>();
+        // List of events for sample analysis
+        private List<BaseEvent> sampleEvents = new List<BaseEvent>();
 
+        // Fields for analyzer configuration
         [KSPField(isPersistant = false)]
         public int kuarqsRequired = 0;
 
@@ -38,17 +39,17 @@ namespace StationScience
         public float kuarqDecay = 0;
 
         [KSPField(isPersistant = false)]
-        public float txValue = .8F;
+        public float txValue = 0.8F;
 
         [KSPField(isPersistant = true)]
-        public int lightsMode = 1;
-        // 0: force off; 1: auto; 2: force on
+        public int lightsMode = 1; // 0: off, 1: auto, 2: on
 
-        string lightsOn = Localizer.Format("#autoLOC_StatSci_LightsOn");
-        string lightsOff = Localizer.Format("#autoLOC_StatSci_LightsOff");
-        string lightsAuto = Localizer.Format("#autoLOC_StatSci_LightsAuto");
+        private string lightsOn = Localizer.Format("#autoLOC_StatSci_LightsOn");
+        private string lightsOff = Localizer.Format("#autoLOC_StatSci_LightsOff");
+        private string lightsAuto = Localizer.Format("#autoLOC_StatSci_LightsAuto");
 
-        public void updateLightsMode()
+        // Update lights mode based on the current setting
+        private void UpdateLightsMode()
         {
             switch (lightsMode)
             {
@@ -62,60 +63,50 @@ namespace StationScience
                     Events["LightsMode"].guiName = lightsOn;
                     break;
             }
-            updateLights();
+            UpdateLights();
         }
 
+        // Toggle lights mode between off, auto, and on
         [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_LightsAuto", active = true)]
-        public void LightsMode()
+        public void ToggleLightsMode()
         {
-            lightsMode += 1;
-            if (lightsMode > 2)
-                lightsMode = 0;
-            updateLightsMode();
+            lightsMode = (lightsMode + 1) % 3; // Cycles between 0, 1, and 2
+            UpdateLightsMode();
         }
 
-        public PartResource getResource(string name)
-        {
-            return ResourceHelper.getResource(part, name);
-        }
+        // Resource helper methods
+        public PartResource GetResource(string name) => ResourceHelper.GetResource(part, name);
+        public double GetResourceAmount(string name) => ResourceHelper.GetResourceAmount(part, name);
+        public PartResource SetResourceMaxAmount(string name, double max) => ResourceHelper.SetResourceMaxAmount(part, name, max);
 
-        public double getResourceAmount(string name)
+        // Analyze science data
+        public void Analyze(IScienceDataContainer container, ScienceData data)
         {
-            return ResourceHelper.getResourceAmount(part, name);
-        }
-
-        public PartResource setResourceMaxAmount(string name, double max)
-        {
-            return ResourceHelper.setResourceMaxAmount(part, name, max);
-        }
-
-        public void analyze(IScienceDataContainer cont, ScienceData sd)
-        {
-            //print(sd.title);
             if (GetScienceCount() > 0)
             {
                 ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_analyseFull"), 6, ScreenMessageStyle.UPPER_CENTER);
                 return;
             }
-            cont.DumpData(sd);
-            this.AddData(sd);
+            container.DumpData(data);
+            AddData(data);
+
             if (kuarqsRequired > 0)
             {
-                setResourceMaxAmount(StationExperiment.KUARQS, kuarqsRequired);
+                SetResourceMaxAmount(StationExperiment.KUARQS, kuarqsRequired);
                 Events["ReviewDataEvent"].guiActive = false;
             }
             else
             {
-                sd.baseTransmitValue = txValue;
-                this.ReviewData();
+                data.baseTransmitValue = txValue;
+                ReviewData();
             }
-            this.updateList();
+            UpdateList();
         }
 
+        // Review data based on kuarqs resource requirements
         public new void ReviewDataEvent()
         {
-            var kuarqs = getResourceAmount(StationExperiment.KUARQS);
-            if (kuarqs > 0 && kuarqs < kuarqsRequired)
+            if (GetResourceAmount(StationExperiment.KUARQS) < kuarqsRequired)
             {
                 ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_analyseFull"), 6, ScreenMessageStyle.UPPER_CENTER);
                 return;
@@ -125,8 +116,7 @@ namespace StationScience
 
         public new void ReviewData()
         {
-            var kuarqs = getResourceAmount(StationExperiment.KUARQS);
-            if (kuarqs > 0 && kuarqs < kuarqsRequired)
+            if (GetResourceAmount(StationExperiment.KUARQS) < kuarqsRequired)
             {
                 ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_analyseAct"), 6, ScreenMessageStyle.UPPER_CENTER);
                 return;
@@ -134,158 +124,130 @@ namespace StationScience
             base.ReviewData();
         }
 
-        //[KSPField(guiActive = true, guiName = "Status", isPersistant = false)]
-        //public string status;
-
-        public void addDataButton(ScienceData sd, IScienceDataContainer cont)
+        // Add a button to analyze science data
+        public void AddDataButton(ScienceData data, IScienceDataContainer container)
         {
-            var subject = ResearchAndDevelopment.GetSubjectByID(sd.subjectID);
-            var parts = sd.subjectID.Split('@');
-            var experiment = ResearchAndDevelopment.GetExperiment(parts[0]);
-            if (experiment != null && sd.baseTransmitValue < txValue)
+            var experiment = ResearchAndDevelopment.GetExperiment(data.subjectID.Split('@')[0]);
+            if (experiment != null && data.baseTransmitValue < txValue)
             {
-                KSPEvent kspevent = new KSPEvent();
-                kspevent.active = true;
-                kspevent.name = sd.subjectID;
-                kspevent.guiActive = true;
-                kspevent.guiName = sd.title;
-                IScienceDataContainer my_cont = cont;
-                ScienceData my_sd = sd;
-                BaseEvent ev = new BaseEvent(Events, sd.subjectID, delegate() { analyze(my_cont, my_sd); }, kspevent);
-                sampleEvents.Add(ev);
-                Events.Add(ev);
+                var kspEvent = new KSPEvent
+                {
+                    active = true,
+                    name = data.subjectID,
+                    guiActive = true,
+                    guiName = data.title
+                };
+                var baseEvent = new BaseEvent(Events, data.subjectID, () => Analyze(container, data), kspEvent);
+                sampleEvents.Add(baseEvent);
+                Events.Add(baseEvent);
             }
         }
 
-        public void updateLights()
+        // Update the state of lights based on lights mode
+        private void UpdateLights()
         {
-            bool animActive = false;
-            if (animator != null)
+            if (animator == null) return;
+
+            bool shouldActivate = lightsMode == 2 || 
+                                  (lightsMode == 1 && GetResourceAmount(StationExperiment.KUARQS) < kuarqsRequired);
+
+            if (shouldActivate != animator.Progress.Equals(shouldActivate))
             {
-                if (lightsMode == 1)
-                {
-                    var kuarqs = getResource(StationExperiment.KUARQS);
-                    animActive = (kuarqs!=null && kuarqs.maxAmount > 0 && kuarqs.amount < kuarqsRequired && kuarqs.amount > 0);
-                }
-                else if (lightsMode == 2) animActive = true;
-                else if (lightsMode == 0) animActive = false;
-                if (animActive && animator.Progress == 0 && animator.status.StartsWith("Locked", true, null))
-                {
-                    animator.allowManualControl = true;
-                    animator.Toggle();
-                    animator.allowManualControl = false;
-                }
-                else if (!animActive && animator.Progress == 1 && animator.status.StartsWith("Locked", true, null))
-                {
-                    animator.allowManualControl = true;
-                    animator.Toggle();
-                    animator.allowManualControl = false;
-                }
+                animator.allowManualControl = true;
+                animator.Toggle();
+                animator.allowManualControl = false;
             }
         }
 
-        public void updateList()
+        // Update the list of available sample events and status
+        public void UpdateList()
         {
-            /*
-            var events = UnityEngine.Object.FindObjectsOfType<UIPartActionEventItem>();
-            foreach(var evit in events)
-            {
-                BaseEvent ev = evit.Evt;
-                if (sampleEvents.Contains(ev))
-                {
-                    return;
-                }
-            }*/
-            updateLights();
-            foreach (BaseEvent ev in sampleEvents)
+            UpdateLights();
+            foreach (var ev in sampleEvents)
             {
                 ev.guiActive = false;
                 Events.Remove(ev);
             }
             sampleEvents.Clear();
+
             if (GetScienceCount() > 0)
             {
-                if (kuarqsRequired > 0)
-                {
-                    var kuarqs = getResource(StationExperiment.KUARQS);
-                    if (kuarqs != null && kuarqs.maxAmount > 0 && kuarqs.amount < kuarqsRequired)
-                    {
-                        if (kuarqs.amount == 0)
-                            status = Localizer.Format("#autoLOC_StatSci_analyseReady");
-                        else
-                            status = Localizer.Format("#autoLOC_StatSci_analysing");
-                    }
-                    else
-                        status = Localizer.Format("#autoLOC_StatSci_readyTrans");
-                }
-                else
-                    status = Localizer.Format("#autoLOC_StatSci_readyTrans");
+                status = kuarqsRequired > 0 && GetResourceAmount(StationExperiment.KUARQS) < kuarqsRequired
+                    ? GetResourceAmount(StationExperiment.KUARQS) == 0
+                        ? Localizer.Format("#autoLOC_StatSci_analyseReady")
+                        : Localizer.Format("#autoLOC_StatSci_analysing")
+                    : Localizer.Format("#autoLOC_StatSci_readyTrans");
             }
             else
             {
-                foreach (var cont in vessel.FindPartModulesImplementing<IScienceDataContainer>())
+                foreach (var container in vessel.FindPartModulesImplementing<IScienceDataContainer>())
                 {
-                    if (cont is SampleAnalyzer)
-                        continue;
-                    foreach (ScienceData sd in cont.GetData())
+                    if (container is SampleAnalyzer) continue;
+
+                    foreach (var data in container.GetData())
                     {
-                        addDataButton(sd, cont);
+                        AddDataButton(data, container);
                     }
                 }
-                if (sampleEvents.Count == 0)
-                    status = "#autoLOC_StatSci_analyseNothing";
-                else
-                    status = Localizer.Format("#autoLOC_StatSci_analyseReady");
+
+                status = sampleEvents.Count == 0
+                    ? "#autoLOC_StatSci_analyseNothing"
+                    : Localizer.Format("#autoLOC_StatSci_analyseReady");
             }
-            updateLights();
+            UpdateLights();
         }
 
         private double lastUpdate = 0;
 
+        // Fixed update to handle periodic tasks
         public override void OnFixedUpdate()
         {
             base.OnFixedUpdate();
-            double curTime = UnityEngine.Time.realtimeSinceStartup;
-            if (lastUpdate + 2 < curTime)
+
+            double curTime = Time.realtimeSinceStartup;
+            if (curTime - lastUpdate >= 2)
             {
-                updateList();
+                UpdateList();
                 lastUpdate = curTime;
             }
+
             if (kuarqsRequired > 0)
             {
-                var numKuarqs = getResourceAmount(StationExperiment.KUARQS);
-                if (numKuarqs > 0)
-                {
+                var kuarqsAmount = GetResourceAmount(StationExperiment.KUARQS);
 
+                if (kuarqsAmount > 0)
+                {
                     if (GetScienceCount() == 0)
                     {
                         ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_transmitted"), 6, ScreenMessageStyle.UPPER_CENTER);
-                        setResourceMaxAmount(StationExperiment.KUARQS, 0);
+                        SetResourceMaxAmount(StationExperiment.KUARQS, 0);
                     }
-                    if (numKuarqs >= kuarqsRequired && GetScienceCount() > 0)
+
+                    if (kuarqsAmount >= kuarqsRequired && GetScienceCount() > 0)
                     {
-                        var sdata = this.GetData();
-                        if (sdata != null && sdata.Length == 1)
+                        var scienceData = GetData();
+                        if (scienceData.Length == 1)
                         {
-                            var sd = sdata[0];
-                            sd.baseTransmitValue = txValue;
+                            scienceData[0].baseTransmitValue = txValue;
                             ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_anaComp"), 6, ScreenMessageStyle.UPPER_CENTER);
-                            setResourceMaxAmount(StationExperiment.KUARQS, 0);
+                            SetResourceMaxAmount(StationExperiment.KUARQS, 0);
                             Events["ReviewDataEvent"].guiActive = true;
                         }
                     }
+
                     if (kuarqHalflife > 0)
                     {
-                        var kuarqs = getResource(StationExperiment.KUARQS);
-                        if (kuarqs != null && kuarqs.amount < (.99 * kuarqsRequired))
+                        var kuarqs = GetResource(StationExperiment.KUARQS);
+                        if (kuarqs != null && kuarqs.amount < 0.99 * kuarqsRequired)
                         {
-                            double delta = TimeWarp.fixedDeltaTime;
-                            double decay = Math.Pow(.5, delta / kuarqHalflife);
-                            kuarqDecay = (float)((kuarqs.amount * (1 - decay)) / delta);
-                            kuarqs.amount = kuarqs.amount * decay;
+                            double decay = Math.Pow(0.5, TimeWarp.fixedDeltaTime / kuarqHalflife);
+                            kuarqDecay = (float)((kuarqs.amount * (1 - decay)) / TimeWarp.fixedDeltaTime);
+                            kuarqs.amount *= decay;
                         }
                         else
+                        {
                             kuarqDecay = 0;
+                        }
                     }
                 }
             }
@@ -293,58 +255,55 @@ namespace StationScience
 
         private ModuleAnimateGeneric animator = null;
 
+        // Initialize the module when the game starts
         public override void OnStart(StartState state)
         {
             base.OnStart(state);
-            var animators = this.part.FindModulesImplementing<ModuleAnimateGeneric>();
-            if (animators != null && animators.Count >= 1)
+
+            animator = part.FindModuleImplementing<ModuleAnimateGeneric>();
+            if (animator != null)
             {
-                this.animator = animators[0];
-                for(int i = 0; i < animator.Fields.Count; i++) {
-                    if(animator.Fields[i] != null)
-                        animator.Fields[i].guiActive = false;
+                foreach (var field in animator.Fields)
+                {
+                    if (field != null)
+                        field.guiActive = false;
                 }
-                /*for(int i = 0; i < animator.Actions.Count; i++) {
-                    if(animator.Actions[i] != null)
-                        animator.Actions[i].active = false;
-                }
-                for(int i = 0; i < animator.Events.Count; i++) {
-                    if (animator.Events[i] != null)
-                    {
-                        animator.Events[i].guiActive = false;
-                        animator.Events[i].active = false;
-                    }
-                }*/
             }
-            this.capacity = 1;
-            if (state == StartState.Editor) { return; }
+
+            capacity = 1;
+
+            if (state == StartState.Editor) return;
+
             if (kuarqHalflife > 0)
                 Fields["kuarqDecay"].guiActive = true;
-            this.part.force_activate();
-            updateLightsMode();
+
+            part.force_activate();
+            UpdateLightsMode();
         }
 
+        // Provide information about the analyzer
         public override string GetInfo()
         {
-            string ret = "";
-            string reqCyclo = "";
-            ret += Localizer.Format("#autoLOC_StatSci_analyseImp", Math.Round(txValue * 100));
+            string info = Localizer.Format("#autoLOC_StatSci_analyseImp", Math.Round(txValue * 100));
+
             if (kuarqsRequired > 0)
             {
-                ret += "\n"+ Localizer.Format("#autoLOC_StatSci_KuarkReq", kuarqsRequired);
+                info += $"\n{Localizer.Format("#autoLOC_StatSci_KuarkReq", kuarqsRequired)}";
+
                 double productionRequired = 0.01;
                 if (kuarqHalflife > 0)
                 {
-                    ret += "\n" + Localizer.Format("#autoLOC_StatSci_KuarkHalf", kuarqHalflife);
-                    productionRequired = kuarqsRequired * (1 - Math.Pow(.5, 1.0 / kuarqHalflife));
-                    ret += "\n" + Localizer.Format("#autoLOC_StatSci_KuarkProd", productionRequired);
+                    info += $"\n{Localizer.Format("#autoLOC_StatSci_KuarkHalf", kuarqHalflife)}";
+                    productionRequired = kuarqsRequired * (1 - Math.Pow(0.5, 1.0 / kuarqHalflife));
+                    info += $"\n{Localizer.Format("#autoLOC_StatSci_KuarkProd", productionRequired)}";
                 }
-                if (productionRequired > 1)
-                    reqCyclo = Localizer.Format("#autoLOC_StatSci_CycReqM", (Math.Ceiling(productionRequired)));
-                else
-                    reqCyclo = Localizer.Format("#autoLOC_StatSci_CycReq");
+
+                info += productionRequired > 1
+                    ? $"\n{Localizer.Format("#autoLOC_StatSci_CycReqM", Math.Ceiling(productionRequired))}"
+                    : $"\n{Localizer.Format("#autoLOC_StatSci_CycReq")}";
             }
-            return ret + reqCyclo;
+
+            return info;
         }
     }
 }

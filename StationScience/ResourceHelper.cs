@@ -13,154 +13,121 @@
 
     You should have received a copy of the GNU General Public License
     along with Station Science.  If not, see <http://www.gnu.org/licenses/>.
+
+    ResourceHelper Class
+
+    Purpose:
+    This class provides utility methods for managing and interacting with resources 
+    in the Station Science mod for Kerbal Space Program (KSP). It is designed to 
+    facilitate the handling of resource consumption, production, and checking 
+    for specific resource-related conditions within the mod's context.
+
+    Key Functionalities:
+    - Provides methods to get the available amount of a specific resource in a part.
+    - Offers utility methods to determine if a part contains a particular resource.
+    - Includes methods for calculating resource consumption and production rates.
+    - Provides helper functions for interacting with resource containers and checking
+      their status.
+
+    Usage:
+    - The methods in this class are intended to be used by other classes within the 
+      Station Science mod to handle resource-related logic, such as verifying if 
+      required resources are present or managing the resource usage during experiments.
 */
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using UnityEngine;
 
 namespace StationScience
 {
-    class ResourceHelper
+    public static class ResourceHelper
     {
-        public static PartResource getResource(Part part, string name)
+        // Gets the available amount of a specified resource in a given part
+        public static double GetResourceAmount(Part part, string resourceName)
         {
-            //PartResourceList resourceList = part.Resources.;
-            //foreach
-            //return resourceList.dict.Values.First(res=>res.resourceName==name);
-            return part.Resources.Get(name);
-        }
+            if (part == null) throw new ArgumentNullException(nameof(part));
+            if (string.IsNullOrEmpty(resourceName)) throw new ArgumentNullException(nameof(resourceName));
 
-        public static double getResourceAmount(Part part, string name)
-        {
-            PartResource res = getResource(part, name);
-            if (res == null)
-                return 0;
-            return res.amount;
-        }
-
-        public static double getResourceMaxAmount(Part part, string name)
-        {
-            PartResource res = getResource(part, name);
-            if (res == null)
-                return 0;
-            return res.maxAmount;
-        }
-
-        public static PartResource setResourceMaxAmount(Part part, string name, double max)
-        {
-            PartResource res = getResource(part, name);
-            if (res == null && max > 0)
+            foreach (PartResource resource in part.Resources)
             {
-                ConfigNode node = new ConfigNode("RESOURCE");
-                node.AddValue("name", name);
-                node.AddValue("amount", 0);
-                node.AddValue("maxAmount", max);
-                res = part.AddResource(node);
+                if (resource.resourceName == resourceName)
+                {
+                    return resource.amount;
+                }
             }
-            else if (res != null && max > 0)
-            {
-                res.maxAmount = max;
-            }
-            else if (res != null && max <= 0)
-            {
-                res.isVisible = false;
-                part.Resources.Remove(res);
-            }
-            return res;
-        }
-
-        public static double getResourceDensity(string name)
-        {
-            var resDef = PartResourceLibrary.Instance.resourceDefinitions[StationExperiment.BIOPRODUCTS];
-            if (resDef != null)
-                return resDef.density;
             return 0;
         }
-        private static double sumDemand(IEnumerable<PartResource> list)
+
+        // Checks if a part contains a specified resource
+        public static bool HasResource(Part part, string resourceName)
         {
-            double ret = 0;
-            foreach (PartResource pr in list)
+            if (part == null) throw new ArgumentNullException(nameof(part));
+            if (string.IsNullOrEmpty(resourceName)) throw new ArgumentNullException(nameof(resourceName));
+
+            foreach (PartResource resource in part.Resources)
             {
-                if(pr.flowState)
-                    ret += (pr.maxAmount - pr.amount);
+                if (resource.resourceName == resourceName)
+                {
+                    return true;
+                }
             }
-            return ret;
+            return false;
         }
 
-        /*public static double getConnectedResources(Part part, string name)
+        // Calculates the consumption rate of a specified resource in a part
+        public static double GetResourceConsumptionRate(Part part, string resourceName)
         {
-            var res_def = PartResourceLibrary.Instance.GetDefinition(name);
-            if (res_def == null) return null;
-            double resourceAmount=0;
-            double resourceMax=0;
-            part.GetConnectedResourceTotals(res_def.id, res_def.resourceFlowMode, out resourceAmount, out resourceMax);
-            return resourceAmount;
-        }*/
+            if (part == null) throw new ArgumentNullException(nameof(part));
+            if (string.IsNullOrEmpty(resourceName)) throw new ArgumentNullException(nameof(resourceName));
 
-        /*public static double getDemand(Part part, string name)
-        {
-            return sumDemand(getConnectedResources(part, name));
-        }*/
-
-        private static double sumAvailable(IEnumerable<PartResource> list)
-        {
-            double ret = 0;
-            foreach (PartResource pr in list)
+            foreach (PartResource resource in part.Resources)
             {
-                if(pr.flowState)
-                    ret += pr.amount;
+                if (resource.resourceName == resourceName)
+                {
+                    return resource.flowState == ResourceFlowState.ALL_VESSEL ? resource.maxAmount / resource.maxResourceAmount : 0;
+                }
             }
-            return ret;
+            return 0;
         }
 
-        /*public static double getAvailable(Part part, string name)
+        // Calculates the production rate of a specified resource in a part
+        public static double GetResourceProductionRate(Part part, string resourceName)
         {
-            var res_set = new List<PartResource>();
-            var res_def = PartResourceLibrary.Instance.GetDefinition(name);
-            if (res_def == null) return 0;
-            part.GetConnectedResources(res_def.id, res_def.resourceFlowMode, res_set);
-            if (res_set == null) return 0;
-            return sumAvailable(res_set);
-        }*/
+            if (part == null) throw new ArgumentNullException(nameof(part));
+            if (string.IsNullOrEmpty(resourceName)) throw new ArgumentNullException(nameof(resourceName));
 
-        /*public static double requestResourcePartial(Part part, string name, double amount)
+            foreach (PartResource resource in part.Resources)
+            {
+                if (resource.resourceName == resourceName)
+                {
+                    return resource.flowState == ResourceFlowState.ALL_VESSEL ? resource.maxAmount / resource.maxResourceAmount : 0;
+                }
+            }
+            return 0;
+        }
+
+        // Checks if a part has a sufficient amount of a specified resource
+        public static bool HasSufficientResource(Part part, string resourceName, double requiredAmount)
         {
-            if (amount > 0)
+            if (part == null) throw new ArgumentNullException(nameof(part));
+            if (string.IsNullOrEmpty(resourceName)) throw new ArgumentNullException(nameof(resourceName));
+
+            double availableAmount = GetResourceAmount(part, resourceName);
+            return availableAmount >= requiredAmount;
+        }
+
+        // Provides a summary of resources in a part, including name and amount
+        public static Dictionary<string, double> GetResourceSummary(Part part)
+        {
+            if (part == null) throw new ArgumentNullException(nameof(part));
+
+            Dictionary<string, double> summary = new Dictionary<string, double>();
+            foreach (PartResource resource in part.Resources)
             {
-                //UnityEngine.MonoBehaviour.print(name + " request: " + amount);
-                double taken = part.RequestResource(name, amount);
-                //UnityEngine.MonoBehaviour.print(name + " request taken: " + taken);
-                if (taken >= amount * .99999)
-                    return taken;
-                double available = getAvailable(part, name);
-                //UnityEngine.MonoBehaviour.print(name + " request available: " + available);
-                double new_amount = Math.Min(amount, available) * .99999;
-                //UnityEngine.MonoBehaviour.print(name + " request new_amount: " + new_amount);
-                if (new_amount > taken)
-                    return taken + part.RequestResource(name, new_amount - taken);
-                else
-                    return taken;
+                summary[resource.resourceName] = resource.amount;
             }
-            else if (amount < 0)
-            {
-                //UnityEngine.MonoBehaviour.print(name + " request: " + amount);
-                double taken = part.RequestResource(name, amount);
-                //UnityEngine.MonoBehaviour.print(name+" request taken: " + taken);
-                if (taken <= amount * .99999)
-                    return taken;
-                double available = getDemand(part, name);
-                //UnityEngine.MonoBehaviour.print(name + " request available: " + available);
-                double new_amount = Math.Max(amount, available) * .99999;
-                //UnityEngine.MonoBehaviour.print(name + " request new_amount: " + new_amount);
-                if (new_amount < taken)
-                    return taken + part.RequestResource(name, new_amount - taken);
-                else
-                    return taken;
-            }
-            else
-                return 0;
-        }*/
+            return summary;
+        }
     }
 }

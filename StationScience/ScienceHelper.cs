@@ -18,80 +18,112 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace StationScience
 {
-    class ScienceHelper
+    /// <summary>
+    /// Provides utility methods for science calculations and data retrieval in Kerbal Space Program.
+    /// </summary>
+    public static class ScienceHelper
     {
-        public static ExperimentSituations getScienceSituation(Vessel vessel)
+        /// <summary>
+        /// Gets the science situation for the given vessel.
+        /// </summary>
+        /// <param name="vessel">The vessel to check.</param>
+        /// <returns>The experiment situation based on the vessel's location and state.</returns>
+        public static ExperimentSituations GetScienceSituation(Vessel vessel)
         {
-            CelestialBody body = vessel.mainBody;
-            return getScienceSituation(vessel.altitude, vessel.situation, body);
+            return GetScienceSituation(vessel.altitude, vessel.situation, vessel.mainBody);
         }
 
-        public static ExperimentSituations getScienceSituation(double altitude, Vessel.Situations situation, CelestialBody body)
+        /// <summary>
+        /// Determines the science situation based on altitude, vessel situation, and celestial body.
+        /// </summary>
+        /// <param name="altitude">The vessel's altitude.</param>
+        /// <param name="situation">The vessel's current situation.</param>
+        /// <param name="body">The celestial body the vessel is on or near.</param>
+        /// <returns>The corresponding experiment situation.</returns>
+        public static ExperimentSituations GetScienceSituation(double altitude, Vessel.Situations situation, CelestialBody body)
         {
-            CelestialBodyScienceParams pars = body.scienceValues;
-            if (situation == Vessel.Situations.LANDED || situation == Vessel.Situations.PRELAUNCH)
-                return ExperimentSituations.SrfLanded;
-            else if (situation == Vessel.Situations.SPLASHED)
-                return ExperimentSituations.SrfSplashed;
-            else if (body.atmosphere && altitude <= pars.flyingAltitudeThreshold)
-                return ExperimentSituations.FlyingLow;
-            else if (body.atmosphere && altitude <= body.atmosphereDepth) // -ln(10^-6)
-                return ExperimentSituations.FlyingHigh;
-            else if (altitude <= pars.spaceAltitudeThreshold)
-                return ExperimentSituations.InSpaceLow;
-            else
-                return ExperimentSituations.InSpaceHigh;
-        }
+            CelestialBodyScienceParams scienceParams = body.scienceValues;
 
-        public static float getScienceMultiplier(Vessel vessel)
-        {
-            CelestialBody body = vessel.mainBody;
-            /*print("");
-            print("Altitude: " + vessel.altitude);
-            print("Landed Value: " + pars.LandedDataValue);
-            print("Splashed Value: " + pars.SplashedDataValue);
-            print("Fly Low: " + pars.FlyingLowDataValue + " at " + pars.flyingAltitudeThreshold);
-            print("High Low: " + pars.FlyingHighDataValue + " at " + (body.atmosphereScaleHeight * 1000 * 13.8) + " or " + body.maxAtmosphereAltitude);
-            print("Orbit Low: " + pars.InSpaceLowDataValue + " at " + pars.spaceAltitudeThreshold);
-            print("Orbit Low: " + pars.InSpaceHighDataValue);*/
-            return getScienceMultiplier(getScienceSituation(vessel), body);
-        }
-
-        public static float getScienceMultiplier(ExperimentSituations situation, CelestialBody body)
-        {
-            CelestialBodyScienceParams pars = body.scienceValues;
+            // Determine the science situation based on the vessel's state and location.
             switch (situation)
             {
-                case ExperimentSituations.SrfLanded:
-                  return pars.LandedDataValue;
-                case ExperimentSituations.SrfSplashed:
-                  return pars.SplashedDataValue;
-                case ExperimentSituations.FlyingLow:
-                  return pars.FlyingLowDataValue;
-                case ExperimentSituations.FlyingHigh:
-                  return pars.FlyingHighDataValue;
-                case ExperimentSituations.InSpaceLow:
-                  return pars.InSpaceLowDataValue;
-                case ExperimentSituations.InSpaceHigh:
-                  return pars.InSpaceHighDataValue;
+                case Vessel.Situations.LANDED:
+                case Vessel.Situations.PRELAUNCH:
+                    return ExperimentSituations.SrfLanded;
+
+                case Vessel.Situations.SPLASHED:
+                    return ExperimentSituations.SrfSplashed;
+
+                default:
+                    if (body.atmosphere)
+                    {
+                        if (altitude <= scienceParams.flyingAltitudeThreshold)
+                            return ExperimentSituations.FlyingLow;
+                        else if (altitude <= body.atmosphereDepth)
+                            return ExperimentSituations.FlyingHigh;
+                    }
+
+                    if (altitude <= scienceParams.spaceAltitudeThreshold)
+                        return ExperimentSituations.InSpaceLow;
+
+                    return ExperimentSituations.InSpaceHigh;
             }
-            return 1;
         }
 
-        public static ScienceSubject getScienceSubject(string name, Vessel vessel)
+        /// <summary>
+        /// Retrieves the science multiplier for the given vessel.
+        /// </summary>
+        /// <param name="vessel">The vessel to check.</param>
+        /// <returns>The science multiplier based on the vessel's current science situation.</returns>
+        public static float GetScienceMultiplier(Vessel vessel)
+        {
+            ExperimentSituations situation = GetScienceSituation(vessel);
+            return GetScienceMultiplier(situation, vessel.mainBody);
+        }
+
+        /// <summary>
+        /// Retrieves the science multiplier for a specific science situation and celestial body.
+        /// </summary>
+        /// <param name="situation">The science situation.</param>
+        /// <param name="body">The celestial body.</param>
+        /// <returns>The science multiplier for the given situation and body.</returns>
+        public static float GetScienceMultiplier(ExperimentSituations situation, CelestialBody body)
+        {
+            CelestialBodyScienceParams scienceParams = body.scienceValues;
+
+            // Retrieve the science multiplier based on the situation.
+            return situation switch
+            {
+                ExperimentSituations.SrfLanded => scienceParams.LandedDataValue,
+                ExperimentSituations.SrfSplashed => scienceParams.SplashedDataValue,
+                ExperimentSituations.FlyingLow => scienceParams.FlyingLowDataValue,
+                ExperimentSituations.FlyingHigh => scienceParams.FlyingHighDataValue,
+                ExperimentSituations.InSpaceLow => scienceParams.InSpaceLowDataValue,
+                ExperimentSituations.InSpaceHigh => scienceParams.InSpaceHighDataValue,
+                _ => 1 // Default multiplier
+            };
+        }
+
+        /// <summary>
+        /// Retrieves the science subject for a given experiment name and vessel.
+        /// </summary>
+        /// <param name="name">The name of the experiment.</param>
+        /// <param name="vessel">The vessel to check.</param>
+        /// <returns>The corresponding science subject.</returns>
+        public static ScienceSubject GetScienceSubject(string name, Vessel vessel)
         {
             ScienceExperiment experiment = ResearchAndDevelopment.GetExperiment(name);
-            if (experiment == null) return null;
-            ExperimentSituations situation = getScienceSituation(vessel);
+            if (experiment == null)
+                return null;
+
+            ExperimentSituations situation = GetScienceSituation(vessel);
             CelestialBody body = vessel.mainBody;
-            string biome = "";
-            if(vessel.LandedOrSplashed) biome = vessel.landedAt;
-            ScienceSubject subject = ResearchAndDevelopment.GetExperimentSubject(experiment, situation, body, biome, biome);
-            return subject;
+            string biome = vessel.LandedOrSplashed ? vessel.landedAt : string.Empty;
+
+            return ResearchAndDevelopment.GetExperimentSubject(experiment, situation, body, biome, biome);
         }
     }
 }
