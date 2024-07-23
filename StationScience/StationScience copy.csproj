@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+<PropertyGroup>
+  <LangVersion>9.0</LangVersion>
+</PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>StationScience</AssemblyName>
+    <RootNamespace>StationScience</RootNamespace>
+    <NoStandardLibraries>false</NoStandardLibraries>
+    <FileAlignment>512</FileAlignment>
+    <Configurations>Debug;Release</Configurations>
+    <!-- Define KSPDIR property with a default value -->
+    <KSPDIR Condition="'$(KSPDIR)' == ''">D:\KSP DEV</KSPDIR>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+    <DebugType>portable</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="UnityEngine">
+      <HintPath>$(KSPDIR)\KSP_x64_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(KSPDIR)\KSP_x64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(KSPDIR)\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="KSP_Log">
+      <HintPath>$(KSPDIR)\GameData\SpaceTuxLibrary\Plugins\KSP_Log.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- <Compile Include="AssemblyVersion.cs" /> -->
+    <Compile Include="InstallChecker.cs" />
+    <Compile Include="ModuleCostlyExperiment.cs" />
+    <Compile Include="ResourceHelper.cs" />
+    <Compile Include="SampleAnalyzer.cs" />
+    <Compile Include="ScienceHelper copy.cs" />
+    <Compile Include="StationExperiment copy.cs" />
+    <Compile Include="StationScienceModule copy.cs" />
+    <Compile Include="StnSciContract.cs" />
+    <Compile Include="StnSciParameters.cs" />
+    <Compile Include="StnSciScenario.cs" />
+  </ItemGroup>
+
+
+</Project>
