@@ -58,12 +58,12 @@
   <ItemGroup>
     <!-- <Compile Include="AssemblyVersion.cs" /> -->
     <Compile Include="InstallChecker.cs" />
-    <Compile Include="ModuleCostlyExperiment.cs" />
+    <!--<Compile Include="ModuleCostlyExperiment.cs" /> -->
     <Compile Include="ResourceHelper.cs" />
     <Compile Include="SampleAnalyzer.cs" />
-    <Compile Include="ScienceHelper copy.cs" />
-    <Compile Include="StationExperiment copy.cs" />
-    <Compile Include="StationScienceModule copy.cs" />
+    <Compile Include="ScienceHelper.cs" />
+    <Compile Include="StationExperiment.cs" />
+    <Compile Include="StationScienceModule.cs" />
     <Compile Include="StnSciContract.cs" />
     <Compile Include="StnSciParameters.cs" />
     <Compile Include="StnSciScenario.cs" />

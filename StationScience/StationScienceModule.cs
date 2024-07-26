@@ -19,50 +19,80 @@ using KSP.Localization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace StationScience
 {
+    /// <summary>
+    /// This module represents a science module for a space station.
+    /// It handles skill checks, efficiency bonuses, and lights animation.
+    /// </summary>
     public class StationScienceModule : ModuleResourceConverter
     {
+        // Determines the mode of the lights: 0 = off, 1 = auto, 2 = on
         [KSPField(isPersistant = true)]
         public int lightsMode = 1;
-        // 0: force off; 1: auto; 2: force on
 
+        // Required skills for the module to function properly
         [KSPField]
         public string requiredSkills = "NA";
 
-        public IEnumerable<String> skills;
+        // Skills parsed from the requiredSkills string
+        public IEnumerable<string> skills;
 
+        // Bonus multiplier for experience
         [KSPField]
         public double experienceBonus = 0.5;
 
+        // Time of the last skill check
+        private float lastCheck = 0;
+
+        // Flag to determine if the module is actively producing resources
+        private bool actuallyProducing = false;
+
+        // Last recipe used for conversion
+        private ConversionRecipe lastRecipe = null;
+
+        // Animator module for controlling lights
+        private ModuleAnimateGeneric animator = null;
+
+        /// <summary>
+        /// Checks if the crew has the required skills.
+        /// </summary>
+        /// <returns>True if at least one crew member has the required skills, otherwise false.</returns>
         public bool CheckSkill()
         {
-            if (requiredSkills == "" || requiredSkills == "NA")
+            // If no specific skills are required, return true
+            if (string.IsNullOrEmpty(requiredSkills) || requiredSkills == "NA")
                 return true;
+
+            // Parse skills if not already parsed
             if (skills == null)
             {
                 skills = requiredSkills.Split(',').Select(s => s.Trim());
             }
+
+            // Check each crew member for required skills
             foreach (var crew in part.protoModuleCrew)
             {
-                foreach (String skill in skills) {
-                    if (crew.HasEffect(skill))
-                        return true;
-                }
+                if (skills.Any(skill => crew.HasEffect(skill)))
+                    return true;
             }
             return false;
         }
 
-        private float lastCheck = 0;
-
+        /// <summary>
+        /// Pre-processes the module before conversion.
+        /// </summary>
         protected override void PreProcessing()
         {
-            float curTime;
-            if (IsActivated && (curTime = UnityEngine.Time.realtimeSinceStartup) - lastCheck > 0.1)
+            float curTime = UnityEngine.Time.realtimeSinceStartup;
+
+            // Only check skills periodically
+            if (IsActivated && (curTime - lastCheck > 0.1))
             {
                 lastCheck = curTime;
+
+                // Check if the module should be active
                 if (!CheckSkill())
                 {
                     StopResourceConverter();
@@ -75,210 +105,50 @@ namespace StationScience
                 }
                 else
                 {
-                    int nsci = 0;
-                    int nstars = 0;
+                    // Calculate efficiency bonus based on crew skills and experience
+                    int numScienceCrew = 0;
+                    int totalExperience = 0;
+
                     foreach (var crew in part.protoModuleCrew)
                     {
-                        foreach (String skill in skills)
+                        foreach (var skill in skills)
                         {
                             if (crew.HasEffect(skill))
                             {
-                                nsci += 1;
-                                nstars += crew.experienceLevel;
+                                numScienceCrew += 1;
+                                totalExperience += crew.experienceLevel;
                             }
                         }
                     }
-                    SetEfficiencyBonus((float)Math.Max(nsci + nstars * experienceBonus, 1.0));
+                    SetEfficiencyBonus((float)Math.Max(numScienceCrew + totalExperience * experienceBonus, 1.0));
                 }
             }
             base.PreProcessing();
         }
 
-#if false
-        private System.Collections.IEnumerator doUpdateStatus()
-        {
-            while (true)
-            {
-                updateStatus();
-                yield return new UnityEngine.WaitForSeconds(1f);
-            }
-        }
-#endif
-
-        private V GetOrDefault<K, V>(Dictionary<K, V> dict, K key)
-        {
-            try
-            {
-                return dict[key];
-            }
-            catch (KeyNotFoundException)
-            {
-                return default(V);
-            }
-        }
-
-        private void UpdateStatus()
-        {
-            UpdateLights();
-#if false
-            bool animActive = false;
-            if (!doResearch)
-            {
-                displayStatusMessage("Paused");
-            }
-            else if (minimumCrew > 0 && part.protoModuleCrew.Count < minimumCrew)
-            {
-                displayStatusMessage("Understaffed (" + part.protoModuleCrew.Count + "/" + minimumCrew + ")");
-            }
-            else if (StationExperiment.checkBoring(vessel, false))
-            {
-                displayStatusMessage("Go to space!");
-            }
-            else
-            {
-                Fields["researchStatus"].guiActive = false;
-                foreach (ResearchGenerator generator in generators)
-                {
-                    generator.updateStatus();
-                    animActive = animActive || (generator.last_time_step != 0);
-                }
-                /*
-                eurekasStatus = "";
-                var r = getOrDefault(EurekasGenerator.rates,EUREKAS);
-                if (r != null)
-                {
-                    if (r.last_available == 0)
-                        eurekasStatus = "No Experiments";
-                    else
-                    {
-                        eurekasStatus = String.Format("{0:F2} per hour", -r.ratePerHour * r.rateMultiplier);
-                        animActive = true;
-                    }
-                }
-                Fields["eurekasStatus"].guiName = EUREKAS;
-                Fields["eurekasStatus"].guiActive = (eurekasStatus != "");
-
-                kuarqStatus = "";
-                var qr = getOrDefault(KuarqGenerator.rates, KUARQS);
-                var cr = getOrDefault(KuarqGenerator.rates, "ElectricCharge");
-                if (qr != null)
-                {
-                    if (qr.last_available == 0)
-                        kuarqStatus = "No Experiments";
-                    else if (cr != null && cr.last_available < 0.000001)
-                        kuarqStatus = "Not Enough Charge";
-                    else if (qr.last_produced != 0)
-                    {
-                        animActive = true;
-                        kuarqStatus = String.Format("{0:F2} per second", -qr.ratePerSecond * qr.rateMultiplier);
-                    }
-                }
-                Fields["kuarqStatus"].guiActive = (kuarqStatus != "");
-
-                bioproductsStatus = "";
-                var br = getOrDefault(BioproductsGenerator.rates,BIOPRODUCTS);
-                var kr = getOrDefault(BioproductsGenerator.rates,"Kibbal");
-                if (br != null)
-                {
-                    if (br.last_available == 0)
-                        bioproductsStatus = "No Experiments";
-                    else if (kr != null && kr.last_available == 0)
-                        bioproductsStatus = "Not Enough Kibbal";
-                    else if (br.last_produced != 0)
-                    {
-                        animActive = true;
-                        bioproductsStatus = String.Format("{0:F2} per hour", -br.ratePerHour * br.rateMultiplier);
-                    }
-                }
-                Fields["bioproductsStatus"].guiActive = (bioproductsStatus != "");
-
-                scienceStatus = "";
-                var sr = getOrDefault(ScienceGenerator.rates,"__SCIENCE__zoologyBay");
-                var skr = getOrDefault(ScienceGenerator.rates,"Kibbal");
-                if (skr != null && skr.last_available == 0)
-                    scienceStatus = "Hibernating";
-                else if(sr != null && sr.last_produced != 0)
-                    scienceStatus = String.Format("{0:F2} per day", -sr.ratePerDay * sr.rateMultiplier);
-                Fields["scienceStatus"].guiActive = (scienceStatus != "");
-
-                kibbalStatus = "";
-                double total_produced = 0, total_rate = 0;
-                if (kr != null && kr.last_produced != 0)
-                {
-                    total_produced += kr.last_produced; total_rate += kr.ratePerDay * kr.rateMultiplier;
-                }
-                if (skr != null && skr.last_produced != 0)
-                {
-                    total_produced += skr.last_produced; total_rate += skr.ratePerDay * skr.rateMultiplier;
-                }
-                if (total_produced != 0)
-                    kibbalStatus = String.Format("{0:F2} per day", total_rate);
-                Fields["kibbalStatus"].guiActive = (kibbalStatus != "");
-                */
-            }
-            if (animator != null)
-            {
-                if (lightsMode == 2) animActive = true;
-                if (lightsMode == 0) animActive = false;
-                if (animActive && animator.Progress == 0 && animator.status.StartsWith("Locked", true, null))
-                {
-                    animator.allowManualControl = true;
-                    animator.Toggle();
-                    animator.allowManualControl = false;
-                }
-                else if (!animActive && animator.Progress == 1 && animator.status.StartsWith("Locked", true, null))
-                {
-                    animator.allowManualControl = true;
-                    animator.Toggle();
-                    animator.allowManualControl = false;
-                }
-            }
-#endif
-        }
-
-        bool actuallyProducing = false;
-        ConversionRecipe lastRecipe = null;
-
-        protected override ConversionRecipe PrepareRecipe(double deltatime)
-        {
-            lastRecipe = base.PrepareRecipe(deltatime);
-            return lastRecipe;
-        }
-
-        protected override void PostProcess(ConverterResults result, double deltaTime)
-        {
-            base.PostProcess(result, deltaTime);
-            actuallyProducing = (result.TimeFactor > 0);
-            if(lightsMode == 1)
-                UpdateLights();
-            if (lastRecipe == null)
-                return;
-            /*
-            foreach (var ratio in lastRecipe.Inputs)
-            {
-                print(ratio.ResourceName + " output rate: " + ((60 * 60 * ratio.Ratio * result.TimeFactor) / deltaTime) + " per hour");
-            }
-            foreach (var ratio in lastRecipe.Outputs)
-            {
-                print(ratio.ResourceName + " output rate: " + ((60 * 60 * ratio.Ratio * result.TimeFactor) / deltaTime) + " per hour");
-            }
-            */
-        }
-
-        void UpdateLights()
+        /// <summary>
+        /// Updates the lights based on the current lights mode and activation state.
+        /// </summary>
+        private void UpdateLights()
         {
             if (animator != null)
             {
                 bool animActive = this.IsActivated && actuallyProducing;
-                if (lightsMode == 2) animActive = true;
-                if (lightsMode == 0) animActive = false;
-                if (animActive && animator.Progress == 0 && animator.status.StartsWith("Locked", true, null))
+                animActive = lightsMode switch
+                {
+                    2 => true, // Force on
+                    0 => false, // Force off
+                    _ => animActive // Auto mode
+                };
+
+                // Toggle animation based on the active state
+                if (animActive && animator.Progress == 0 && animator.status.StartsWith("Locked", StringComparison.OrdinalIgnoreCase))
                 {
                     animator.allowManualControl = true;
                     animator.Toggle();
                     animator.allowManualControl = false;
                 }
-                else if (!animActive && animator.Progress == 1 && animator.status.StartsWith("Locked", true, null))
+                else if (!animActive && animator.Progress == 1 && animator.status.StartsWith("Locked", StringComparison.OrdinalIgnoreCase))
                 {
                     animator.allowManualControl = true;
                     animator.Toggle();
@@ -287,97 +157,96 @@ namespace StationScience
             }
         }
 
-        private ModuleAnimateGeneric animator = null;
+        /// <summary>
+        /// Prepares the recipe for conversion.
+        /// </summary>
+        /// <param name="deltaTime">Time since the last update.</param>
+        /// <returns>The prepared conversion recipe.</returns>
+        protected override ConversionRecipe PrepareRecipe(double deltaTime)
+        {
+            lastRecipe = base.PrepareRecipe(deltaTime);
+            return lastRecipe;
+        }
 
-        public override void OnStart(PartModule.StartState state)
+        /// <summary>
+        /// Post-processes the results of the conversion.
+        /// </summary>
+        /// <param name="result">The results of the conversion.</param>
+        /// <param name="deltaTime">Time since the last update.</param>
+        protected override void PostProcess(ConverterResults result, double deltaTime)
+        {
+            base.PostProcess(result, deltaTime);
+            actuallyProducing = (result.TimeFactor > 0);
+            if (lightsMode == 1)
+                UpdateLights();
+        }
+
+        /// <summary>
+        /// Called when the module is started.
+        /// </summary>
+        /// <param name="state">The state in which the module is started.</param>
+        public override void OnStart(StartState state)
         {
             base.OnStart(state);
-            var animators = this.part.FindModulesImplementing<ModuleAnimateGeneric>();
-            if (animators != null && animators.Count >= 1)
-            {
-                this.animator = animators[0];
-                for (int i = 0; i < animator.Fields.Count; i++)
-                {
-                    if (animator.Fields[i] != null)
-                        animator.Fields[i].guiActive = false;
-                }
-                /*for(int i = 0; i < animator.Actions.Count; i++) {
-                    if(animator.Actions[i] != null)
-                        animator.Actions[i].active = false;
-                }
-                for(int i = 0; i < animator.Events.Count; i++) {
-                    if (animator.Events[i] != null)
-                    {
-                        animator.Events[i].guiActive = false;
-                        animator.Events[i].active = false;
-                    }
-                }*/
-            }
-            if (state == StartState.Editor) { return; }
+
+            if (state == StartState.Editor)
+                return;
+
+            // Force activate the part
             this.part.force_activate();
 
+            // Find and configure the animator module
+            animator = this.part.FindModulesImplementing<ModuleAnimateGeneric>().FirstOrDefault();
+            if (animator != null)
+            {
+                foreach (var field in animator.Fields)
+                {
+                    if (field != null)
+                        field.guiActive = false;
+                }
+            }
+
             UpdateLightsMode();
-            //StartCoroutine(doUpdateStatus());
         }
 
-        string lightsOn = Localizer.Format("#autoLOC_StatSci_LightsOn");
-        string lightsOff = Localizer.Format("#autoLOC_StatSci_LightsOff");
-        string lightsAuto = Localizer.Format("#autoLOC_StatSci_LightsAuto");
-
-        public void UpdateLightsMode()
+        /// <summary>
+        /// Updates the lights mode based on the current setting.
+        /// </summary>
+        private void UpdateLightsMode()
         {
-            switch (lightsMode)
+            string lightsModeName = lightsMode switch
             {
-                case 0:
-                    Events["LightsMode"].guiName = lightsOff;
-                    break;
-                case 1:
-                    Events["LightsMode"].guiName = lightsAuto;
-                    break;
-                case 2:
-                    Events["LightsMode"].guiName = lightsOn;
-                    break;
-            }
+                0 => Localizer.Format("#autoLOC_StatSci_LightsOff"),
+                1 => Localizer.Format("#autoLOC_StatSci_LightsAuto"),
+                2 => Localizer.Format("#autoLOC_StatSci_LightsOn"),
+                _ => Localizer.Format("#autoLOC_StatSci_LightsAuto")
+            };
+            Events["LightsMode"].guiName = lightsModeName;
             UpdateLights();
         }
 
+        /// <summary>
+        /// Toggles the lights mode between off, auto, and on.
+        /// </summary>
         [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_LightsAuto", active = true)]
         public void LightsMode()
         {
-            lightsMode += 1;
-            if (lightsMode > 2)
-                lightsMode = 0;
+            lightsMode = (lightsMode + 1) % 3;
             UpdateLightsMode();
         }
 
+        /// <summary>
+        /// Provides information about the module.
+        /// </summary>
+        /// <returns>A string describing the module's functionality.</returns>
         public override string GetInfo()
         {
-            string ret = base.GetInfo();
-            if (requiredSkills != "" && requiredSkills != "NA")
+            string info = base.GetInfo();
+            if (!string.IsNullOrEmpty(requiredSkills) && requiredSkills != "NA")
             {
-                ret += Localizer.Format("#autoLOC_StatSci_skillReq", requiredSkills);
+                info += Localizer.Format("#autoLOC_StatSci_skillReq", requiredSkills);
             }
-            return ret;
-#if false
-            string ret = "";
-            if (eurekasPerHour > 0)
-                ret += (ret == "" ? "" : "\n") + "Eurekas per hour: " + eurekasPerHour;
-            if (kuarqsPerSec > 0) {
-                ret += (ret == "" ? "" : "\n") + "Kuarqs per second: " + kuarqsPerSec;
-                if(chargePerKuarq > 0)
-                    ret += (ret == "" ? "" : "\n") + "Electric Charge per Kuarq: " + chargePerKuarq;
-            }
-            if (sciPerDay > 0)
-                ret += (ret == "" ? "" : "\n") + "Science per day: " + sciPerDay;
-            if (kibbalPerDay > 0)
-                ret += (ret == "" ? "" : "\n") + "Kibbal per day: " + kibbalPerDay;
-            if(bioproductsPerHour > 0) {
-                ret += (ret == "" ? "" : "\n") + "Bioproducts per hour: " + bioproductsPerHour;
-                if(kibbalPerBioproduct > 0)
-                    ret += (ret == "" ? "" : "\n") + "Kibbal per bioproduct: " + kibbalPerBioproduct;
-            }
-            return ret;
-#endif
+            return info;
         }
     }
 }

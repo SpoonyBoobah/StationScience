@@ -1,101 +1,78 @@
-﻿/*
-    This file is part of Station Science.
-
-    Station Science is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Station Science is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Station Science.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+﻿using System.Collections;
+using UnityEngine;
 using KSP.Localization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using KSP_Log;
 
 namespace StationScience
 {
     public class StationExperiment : ModuleScienceExperiment
     {
-
+        // Constants representing resource names
         public const string EUREKAS = "Eurekas";
         public const string KUARQS = "Kuarqs";
         public const string BIOPRODUCTS = "Bioproducts";
         public const string SOLUTIONS = "Solutions";
 
-
+        // Inner class to represent a requirement with a name and amount
         internal class Requirement
         {
-            internal string name;
-            internal float amount;
+            internal string Name { get; }
+            internal float Amount { get; }
+
             internal Requirement(string name, float amount)
             {
-                this.name = name;
-                this.amount = amount;
+                Name = name;
+                Amount = amount;
             }
         }
+
+        // Enumeration to represent the status of the experiment
         public enum Status
         {
-            Idle,
-            Running,
-            Completed,
-            BadLocation,
-            Storage,
-            Inoperable,
-            Starved
+            Idle,       // Experiment is idle
+            Running,    // Experiment is running
+            Completed,  // Experiment is completed
+            BadLocation,// Vessel is in a bad location for the experiment
+            Storage,    // Experiment is in storage
+            Inoperable, // Experiment is inoperable
+            Starved     // Experiment is starved of resources
         }
 
+        // Logging instance
         static Log Log;
 
-        internal Dictionary<string, Requirement> requirements = new Dictionary<string, Requirement>();
+        // Dictionary to hold experiment requirements
+        internal Dictionary<string, Requirement> requirements = new();
 
-        [KSPField(isPersistant = false)]
-        public int eurekasRequired;
+        // Experiment requirements fields
+        [KSPField(isPersistant = false)] public int eurekasRequired;
+        [KSPField(isPersistant = false)] public int kuarqsRequired;
+        [KSPField(isPersistant = false)] public int bioproductsRequired;
+        [KSPField(isPersistant = false)] public int solutionsRequired;
+        [KSPField(isPersistant = false)] public float kuarqHalflife;
 
-        [KSPField(isPersistant = false)]
-        public int kuarqsRequired;
+        // GUI fields for kuarq decay and experiment status
+        [KSPField(isPersistant = false, guiName = "#autoLOC_StatSci_Decay", guiUnits = "#autoLOC_StatSci_Decayrate", guiActive = false, guiFormat = "F2")] public float kuarqDecay;
+        [KSPField(isPersistant = false, guiName = "Status", guiActive = true)] public Status currentStatus = Status.Idle;
 
-        [KSPField(isPersistant = false)]
-        public int bioproductsRequired;
+        // Persistent fields for experiment progress tracking
+        [KSPField(isPersistant = true)] public float launched = 0;
+        [KSPField(isPersistant = true)] public float completed = 0;
+        [KSPField(isPersistant = true)] public string last_subjectId = "";
 
-        [KSPField(isPersistant = false)]
-        public int solutionsRequired;
+        // Field for specifying required parts
+        [KSPField(isPersistant = false)] public string requiredParts = ""; // Comma-separated list of part names
 
-
-        [KSPField(isPersistant = false)]
-        public float kuarqHalflife;
-
-        [KSPField(isPersistant = false, guiName = "#autoLOC_StatSci_Decay", guiUnits = "#autoLOC_StatSci_Decayrate", guiActive = false, guiFormat = "F2")]
-        public float kuarqDecay;
-
-        [KSPField(isPersistant = false, guiName = "Status", guiActive = true)]
-        public Status currentStatus = Status.Idle;
-
-        [KSPField(isPersistant = true)]
-        public float launched = 0;
-
-        [KSPField(isPersistant = true)]
-        public float completed = 0;
-
-        [KSPField(isPersistant = true)]
-        public string last_subjectId = "";
-
+        // Method to check if the vessel is in a boring location for experiments
         public static bool CheckBoring(Vessel vessel, bool msg = false)
         {
-	    if(null != Log)
-	    {
-	        Log.Info(vessel.Landed + ", " + vessel.landedAt + ", " + vessel.launchTime + ", " + vessel.situation + ", " + vessel.orbit.referenceBody.name);
-	    }
-            if ((vessel.orbit.referenceBody == FlightGlobals.GetHomeBody()) && (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH || vessel.situation == Vessel.Situations.SPLASHED || vessel.altitude <= vessel.orbit.referenceBody.atmosphereDepth))
+            Log?.Info($"{vessel.Landed}, {vessel.landedAt}, {vessel.launchTime}, {vessel.situation}, {vessel.orbit.referenceBody.name}");
+            if (vessel.orbit.referenceBody == FlightGlobals.GetHomeBody() &&
+                (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH ||
+                vessel.situation == Vessel.Situations.SPLASHED || vessel.altitude <= vessel.orbit.referenceBody.atmosphereDepth))
             {
                 if (msg)
                     ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_boring"), 6, ScreenMessageStyle.UPPER_CENTER);
@@ -104,90 +81,99 @@ namespace StationScience
             return false;
         }
 
-        public PartResource GetResource(string name)
-        {
-            return ResourceHelper.getResource(part, name);
-        }
+        // Helper methods to get and set resources on the part
+        public PartResource GetResource(string name) => ResourceHelper.getResource(part, name);
+        public double GetResourceAmount(string name) => ResourceHelper.getResourceAmount(part, name);
+        public double GetResourceMaxAmount(string name) => ResourceHelper.getResourceMaxAmount(part, name);
+        public PartResource SetResourceMaxAmount(string name, double max) => ResourceHelper.setResourceMaxAmount(part, name, max);
 
-        public double GetResourceAmount(string name)
-        {
-            return ResourceHelper.getResourceAmount(part, name);
-        }
-
-        public double GetResourceMaxAmount(string name)
-        {
-            return ResourceHelper.getResourceMaxAmount(part, name);
-        }
-
-        public PartResource SetResourceMaxAmount(string name, double max)
-        {
-            return ResourceHelper.setResourceMaxAmount(part, name, max);
-        }
-
+        // Method to check if the experiment is finished
         public bool Finished()
         {
-            bool finished = true;
-            double numEurekas = GetResourceAmount(EUREKAS);
-            double numKuarqs = GetResourceAmount(KUARQS);
-            double numBioproducts = GetResourceAmount(BIOPRODUCTS);
-            double numSolutions = GetResourceAmount(SOLUTIONS);
             foreach (var r in requirements)
             {
-                double num = GetResourceAmount(r.Value.name);
-                Log.Info(part.partInfo.title + " "+r.Value.name +": " + num + "/" + r.Value.amount.ToString("F1"));
-
-                if (Math.Round(num, 2) < r.Value.amount)
-                        finished = false;
+                double amount = GetResourceAmount(r.Value.Name);
+                Log.Info($"{part.partInfo.title} {r.Value.Name}: {amount}/{r.Value.Amount:F1}");
+                if (Math.Round(amount, 2) < r.Value.Amount)
+                    return false;
             }
-            //Log.Info(part.partInfo.title + " Eurekas: " + numEurekas + "/" + eurekasRequired);
-            //Log.Info(part.partInfo.title + " Kuarqs: " + numKuarqs + "/" + kuarqsRequired);
-            //Log.Info(part.partInfo.title + " Bioproducts: " + numBioproducts + "/" + bioproductsRequired);
-            //return Math.Round(numEurekas, 2) >= eurekasRequired && Math.Round(numKuarqs,2) >= kuarqsRequired && //Math.Round(numBioproducts, 2) >= bioproductsRequired - 0.001;
-            return finished;
+            return true;
         }
 
+        // Method to check if the required parts are present on the vessel
+        private bool CheckRequiredParts()
+        {
+            // If requiredParts is empty or null, return true as no parts are required
+            if (string.IsNullOrEmpty(requiredParts))
+                return true;
 
-        // this is an unbelievable hack, but it's the only thing i've found that works
-        /// <summary>
-        /// Loads requirements from given config node
-        /// </summary>
+            // Split the requiredParts string into individual part names
+            var partNames = requiredParts.Split(',').Select(name => name.Trim()).ToList();
+
+            // Get a list of part names currently on the vessel
+            var partsOnVessel = vessel.parts.Select(p => p.partInfo.title).ToList();
+
+            // Check if all required parts are present
+            foreach (var requiredPart in partNames)
+            {
+                if (!partsOnVessel.Contains(requiredPart))
+                {
+                    // Notify the player and return false if any required part is missing
+                    ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_missing_part", requiredPart), 6, ScreenMessageStyle.UPPER_CENTER);
+                    return false;
+                }
+            }
+
+            // All required parts are present
+            return true;
+        }
+
+        // Method to load experiment data from a ConfigNode
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
-
             if (part.partInfo != null)
             {
-                node =
-                    GameDatabase.Instance.GetConfigs("PART")
-                                .Single(c => part.partInfo.name == c.name.Replace('_', '.'))
-                                .config.GetNodes("MODULE")
-                                .Single(n => n.GetValue("name") == moduleName);
+                node = GameDatabase.Instance.GetConfigs("PART")
+                    .Single(c => part.partInfo.name == c.name.Replace('_', '.'))
+                    .config.GetNodes("MODULE")
+                    .Single(n => n.GetValue("name") == moduleName);
             }
 
-            var pList = PartResourceLibrary.Instance.resourceDefinitions;
-
+            var resourceDefinitions = PartResourceLibrary.Instance.resourceDefinitions;
             foreach (ConfigNode resNode in node.GetNodes("REQUIREMENT"))
             {
                 try
                 {
                     string name = resNode.GetValue("name");
-                    float amt = float.Parse(resNode.GetValue("maxAmount"));
-                    requirements.Add(name, new Requirement(name, amt));
+                    float amount = float.Parse(resNode.GetValue("maxAmount"));
+                    requirements.Add(name, new Requirement(name, amount));
 
-                    // check if this resource can be pumped
-                    var def = pList[name];
+                    var def = resourceDefinitions[name];
                     if (def.resourceTransferMode != ResourceTransferMode.NONE)
                     {
-                        // add the resource so it can be pre-filled in the VAB
-                        PartResource resource = part.AddResource(resNode);
-
-                        // but remove it so it doesn't show up in the info box in the VAB
+                        var resource = part.AddResource(resNode);
                         part.Resources.Remove(resource);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Log?.Error($"Error loading resource requirements: {ex.Message}");
+                }
             }
-            // Following needed to maintain compatibility with older parts
+
+            // Load the requiredParts field if present
+            if (node.HasValue("requiredParts"))
+            {
+                requiredParts = node.GetValue("requiredParts");
+            }
+
+            AddDefaultRequirements();
+        }
+
+        // Method to add default requirements if they are not already added
+        private void AddDefaultRequirements()
+        {
             if (eurekasRequired > 0 && !requirements.ContainsKey(EUREKAS))
                 requirements.Add(EUREKAS, new Requirement(EUREKAS, eurekasRequired));
             if (kuarqsRequired > 0 && !requirements.ContainsKey(KUARQS))
@@ -198,86 +184,123 @@ namespace StationScience
                 requirements.Add(SOLUTIONS, new Requirement(SOLUTIONS, solutionsRequired));
         }
 
+        // Method called when the experiment module is started
         public override void OnStart(StartState state)
         {
 #if DEBUG
             Log = new Log("StationScience", Log.LEVEL.INFO);
 #else
-      Log = new Log("StationScience", Log.LEVEL.ERROR);
+            Log = new Log("StationScience", Log.LEVEL.ERROR);
 #endif
             base.OnStart(state);
-            if (state == StartState.Editor) { return; }
-            if (requirements.ContainsKey(KUARQS) && kuarqHalflife > 0)
-            //if (kuarqsRequired > 0 && kuarqHalflife > 0)
-            {
-                Fields["kuarqDecay"].guiActive = true; // (kuarqsRequired > 0 && kuarqHalflife > 0);
-                Events["DeployExperiment"].active = Finished();
-                Events["StartExperiment"].active = false;
+            if (state == StartState.Editor) return;
 
-                if (ResearchAndDevelopment.GetExperiment(experimentID).IsAvailableWhile(
-                     GetScienceSituation(vessel), vessel.mainBody))
-                    currentStatus = Status.Completed;
-                else
-                    currentStatus = Status.BadLocation;
-            } else
-            {
-                if (Inoperable)
-                    currentStatus = Status.Inoperable;
-                else if (Deployed)
-                    currentStatus = Status.Storage;
-                else if (GetResource(EUREKAS) != null)
-                    currentStatus = Status.Running;
-                else if (GetResource(SOLUTIONS) != null)
-                    currentStatus = Status.Running;
-                else
-                    currentStatus = Status.Idle;
-
-                Events["DeployExperiment"].active = !Deployed;
-                Events["StartExperiment"].active = (!Inoperable && GetScienceCount() == 0);
-            }
-
+            UpdateStatus(); // Call to update status based on current conditions
 
             this.part.force_activate();
-            StartCoroutine(UpdateStatus());
-            //Actions["DeployAction"].active = false;
+            StartCoroutine(UpdateStatusCoroutine());
         }
 
+        // Event to start the experiment
         [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_startExp", active = true)]
         public void StartExperiment()
         {
             if (GetScienceCount() > 0)
             {
-                ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_finalized"), 6, ScreenMessageStyle.UPPER_CENTER);
+                ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_finalize"), 6, ScreenMessageStyle.UPPER_CENTER);
                 return;
             }
-            if (CheckBoring(vessel, true)) return;
-            PartResource eurekas = null;
-            PartResource bioproducts = null;
-            PartResource solutions = null;
+
+            if (!CheckRequiredParts())
+            {
+                ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_missing_parts"), 6, ScreenMessageStyle.UPPER_CENTER);
+                return;
+            }
+
             foreach (var r in requirements)
             {
-                PartResource pr = SetResourceMaxAmount(r.Value.name, r.Value.amount);
-                if (r.Value.name == EUREKAS) eurekas = pr;
-                if (r.Value.name == BIOPRODUCTS) bioproducts = pr;
-                if (r.Value.name == SOLUTIONS) solutions = pr;
+                var resource = SetResourceMaxAmount(r.Value.Name, r.Value.Amount);
+                if (resource.amount == 0 && r.Value.Name == BIOPRODUCTS)
+                    SetResourceMaxAmount(EUREKAS, 0);
             }
-            //PartResource eurekas = SetResourceMaxAmount(EUREKAS, eurekasRequired);
-            //PartResource kuarqs = SetResourceMaxAmount(KUARQS, kuarqsRequired);
-            //PartResource bioproducts = SetResourceMaxAmount(BIOPRODUCTS, bioproductsRequired);
-            if (solutions != null && solutions.amount == 0 && eurekas != null && eurekas.amount == 0 && bioproducts != null) bioproducts.amount = 0;
+
             Events["StartExperiment"].active = false;
             ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_started"), 6, ScreenMessageStyle.UPPER_CENTER);
-
             currentStatus = Status.Running;
         }
 
+        // Action to start the experiment, usable in action groups
         [KSPAction("#autoLOC_StatSci_startExp")]
-        public void StartExpAction(KSPActionParam p)
+        public void StartExpAction(KSPActionParam p) => StartExperiment();
+
+        // Event to finalize the experiment
+        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_finalizeExp", active = true)]
+        public void FinalizeExperiment()
         {
-            StartExperiment();
+            // Check if all experiment requirements are met
+            if (Finished())
+            {
+                // Set the maximum amount of each resource requirement to 0, indicating the experiment is done consuming resources
+                foreach (var req in requirements)
+                {
+                    SetResourceMaxAmount(req.Value.Name, 0);
+                }
+
+                // Update the status to completed
+                currentStatus = Status.Completed;
+
+                // Notify the player that the experiment has been finalized
+                ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_finalized"), 6, ScreenMessageStyle.UPPER_CENTER);
+
+                // Create a new ScienceData object with the experiment results
+                //ScienceData experimentResult = new ScienceData(
+                    //dataAmount,               // The amount of data collected from the experiment
+                    //xmitValue,                // The transmission value of the collected data
+                    //xmitDataScalar,           // The scalar for data transmission efficiency
+                    //subjectId,                // The unique identifier for the science subject
+                    //title                     // The title of the science data
+                //);
+
+                 // Create a new dialog page to display the experiment results
+                 //ExperimentResultDialogPage page = new ExperimentResultDialogPage(
+                 //host: part,                    // The part where the experiment is conducted
+                 //data: experimentResult,        // The collected science data
+                 //transmitScalar: xmitDataScalar,// Scalar for data transmission
+                 //onDiscard: null,               // Reference data (usually null)
+                 //onKeep: null,                  // Transfer data (usually null)
+                 //hideTransmit: false,           // Whether to hide experiment results
+                 //xp: "",                        // Optional title for the experiment results
+                 //showTransmit: true,            // Whether to show the transmit and keep buttons
+                 //showLabOption: false,          // Whether to show the review data button
+                 //flightId: part.flightID        // The flight ID of the part
+                //);
+
+                // If not in sandbox mode, submit the science data and show the results dialog
+                if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX)
+                {
+                    // Submit the collected science data, triggering the display of the results dialog
+                    //ResearchAndDevelopment.Instance.SubmitScienceData(experimentResult, ResearchAndDevelopment.Instance.Science, null);
+                }
+
+                // Disable the "FinalizeExperiment" event to prevent further calls
+                Events["FinalizeExperiment"].active = false;
+            }
+            else
+            {
+                // Notify the player that the experiment is not finished yet
+                ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_notfinished"), 6, ScreenMessageStyle.UPPER_CENTER);
+            }
         }
 
 
+        // Action to finalize the experiment, usable in action groups
+        [KSPAction("#autoLOC_StatSci_finalizeExp")]
+        public void FinalizeExpAction(KSPActionParam p)
+        {
+            FinalizeExperiment();
+        }
+
+        // Method to check if deployment conditions are met
         public bool DeployChecks()
         {
             if (CheckBoring(vessel, true)) return false;
@@ -287,278 +310,144 @@ namespace StationScience
                 Events["StartExperiment"].active = false;
                 return true;
             }
-            else
-            {
-                ScreenMessages.PostScreenMessage("#autoLOC_StatSci_screen_notfinished", 6, ScreenMessageStyle.UPPER_CENTER);
-            }
+            ScreenMessages.PostScreenMessage("#autoLOC_StatSci_screen_notfinished", 6, ScreenMessageStyle.UPPER_CENTER);
             return false;
         }
 
-        new public void DeployExperiment()
+        // Method to deploy the experiment
+        public void DeployExperimentCustom()
         {
             if (DeployChecks())
             {
-                base.DeployExperiment();
+                // Custom logic for deployment
                 currentStatus = Status.Storage;
             }
         }
 
-        new public void DeployAction(KSPActionParam p)
+        // Method to reset the experiment
+        public void ResetExperimentCustom()
         {
-            if (DeployChecks())
+            // Custom logic to reset the experiment
+            currentStatus = Status.Idle;
+            // Optionally reset other fields or states as needed
+        }
+
+        // Method to update the status of the experiment
+        private void UpdateStatus()
+        {
+            Log.Info($"Updating status for {part.partInfo.title}");
+
+            bool isSandbox = HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX;
+
+            // Check if resource requirements are met
+            bool allRequirementsMet = true;
+            foreach (var r in requirements)
             {
-                base.DeployAction(p);
-                currentStatus = Status.Storage;
-            }
-        }
-         
-        new public void ResetExperiment()
-        {
-            base.ResetExperiment();
-            StopResearch(BIOPRODUCTS);
-            Events["StartExperiment"].active = true;
-            currentStatus = Status.Idle;
-        }
-
-        new public void ResetExperimentExternal()
-        {
-            base.ResetExperimentExternal();
-            StopResearch(BIOPRODUCTS);
-            Events["StartExperiment"].active = true;
-            currentStatus = Status.Idle;
-        }
-
-        new public void ResetAction(KSPActionParam p)
-        {
-            base.ResetAction(p);
-            StopResearch(BIOPRODUCTS);
-            Events["StartExperiment"].active = true;
-            currentStatus = Status.Idle;
-        }
-
-        public override void OnFixedUpdate()
-        {
-            base.OnFixedUpdate();
-            if (requirements.ContainsKey(KUARQS) && kuarqHalflife > 0)
-            //if (kuarqHalflife > 0 && kuarqsRequired > 0)
-            {
-                var kuarqs = GetResource(KUARQS);
-                float kuarqsRequired = requirements[KUARQS].amount;
-                if (kuarqs != null && kuarqs.amount < (.99 * kuarqsRequired))
+                double amount = GetResourceAmount(r.Value.Name);
+                if (amount < r.Value.Amount)
                 {
-                    double decay = Math.Pow(.5, TimeWarp.fixedDeltaTime / kuarqHalflife);
-                    kuarqDecay = (float)((kuarqs.amount * (1 - decay)) / TimeWarp.fixedDeltaTime);
-                    kuarqs.amount = kuarqs.amount * decay;
+                    Log.Info($"{r.Value.Name} resource requirement not met. Current amount: {amount}, required: {r.Value.Amount}");
+                    allRequirementsMet = false;
+                    break;
                 }
-                else
-                    kuarqDecay = 0;
             }
+
+            if (isSandbox)
+            {
+                if (allRequirementsMet)
+                {
+                    Log.Info("All resource requirements met in Sandbox mode, setting status to Storage.");
+                    currentStatus = Status.Storage;
+                }
+                else if (currentStatus != Status.Running)
+                {
+                    Log.Info("Experiment not running in Sandbox mode, setting status to Idle.");
+                    currentStatus = Status.Idle;
+                }
+                Events["FinalizeExperiment"].active = currentStatus == Status.Completed;
+                return; // Skip science count check in Sandbox mode
+            }
+
+            // Non-Sandbox mode logic
+            if (GetScienceCount() > 0)
+            {
+                Log.Info("Science count is greater than 0, setting status to Completed.");
+                currentStatus = Status.Completed;
+            }
+            else
+            {
+                // Check the vessel’s situation
+                switch (vessel.situation)
+                {
+                    case Vessel.Situations.LANDED:
+                    case Vessel.Situations.SPLASHED:
+                    case Vessel.Situations.PRELAUNCH:
+                        Log.Info("Vessel in a bad location, setting status to BadLocation.");
+                        currentStatus = Status.BadLocation;
+                        break;
+                    default:
+                        if (Finished())
+                        {
+                            Log.Info("Experiment finished, setting status to Storage.");
+                            currentStatus = Status.Storage;
+                        }
+                        else if (currentStatus != Status.Running)
+                        {
+                            Log.Info("Experiment not running, setting status to Idle.");
+                            currentStatus = Status.Idle;
+                        }
+                        break;
+                }
+
+                if (currentStatus == Status.Running)
+                {
+                    foreach (var r in requirements)
+                    {
+                        double amount = GetResourceAmount(r.Value.Name);
+                        if (amount < r.Value.Amount)
+                        {
+                            Log.Info($"{r.Value.Name} resource starved. Current amount: {amount}, required: {r.Value.Amount}");
+                            currentStatus = Status.Starved;
+                            break;
+                        }
+                    }
+                }
+
+                if (currentStatus == Status.Starved)
+                {
+                    Log.Info("Experiment starved, setting status to Idle.");
+                    currentStatus = Status.Idle;
+                }
+            }
+
+            // Update the visibility of the FinalizeExperiment button
+            Events["FinalizeExperiment"].active = currentStatus == Status.Completed;
         }
 
-        public void StopResearch(string resName)
+        // Method to get the science count, with added logging for debugging
+        public new int GetScienceCount()
         {
-            SetResourceMaxAmount(resName, 0);
+            // Check if the game is in Sandbox mode
+            if (HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX)
+            {
+                Log.Info("Game mode is Sandbox, returning science count of 0.");
+                return 0;
+            }
+
+            // Call base class method to get the science count
+            int scienceCount = base.GetScienceCount();
+            Log.Info($"Science count: {scienceCount}");
+            return scienceCount;
         }
 
-        public void StopResearch()
-        {
-            StopResearch(EUREKAS);
-            StopResearch(KUARQS);
-            StopResearch(SOLUTIONS);
-        }
-
-        public System.Collections.IEnumerator UpdateStatus()
+        // Coroutine to periodically update the status
+        private IEnumerator UpdateStatusCoroutine()
         {
             while (true)
             {
-                Log.Info(part.partInfo.title + "updateStatus");
-                double numEurekas = GetResourceAmount(EUREKAS);
-                double numEurekasMax = GetResourceMaxAmount(EUREKAS);
-                double numKuarqs = GetResourceAmount(KUARQS);
-                double numKuarqsMax = GetResourceMaxAmount(KUARQS);
-                double numBioproducts = GetResourceAmount(BIOPRODUCTS);
-                double numSolutions = GetResourceAmount(SOLUTIONS);
-                double numSolutionsMax = GetResourceMaxAmount(SOLUTIONS);
-                int sciCount = GetScienceCount();
-                Log.Info(part.partInfo.title + " finished: " + Finished());
-                if (!Finished())
-                {
-                    Events["DeployExperiment"].active = false;
-                    Events["StartExperiment"].active = (!Inoperable && sciCount == 0 && numEurekasMax == 0 && numKuarqsMax == 0 && numSolutionsMax == 0);
-                }
-                else
-                {
-                    Events["DeployExperiment"].active = true;
-                    Events["StartExperiment"].active = false;
-                }
-                var subject = ScienceHelper.getScienceSubject(experimentID, vessel);
-                string subjectId = ((subject == null) ? "" : subject.id);
-                if(subjectId != "" && last_subjectId != "" && last_subjectId != subjectId &&
-                    (numSolutions > 0 || numEurekas > 0 || numKuarqs > 0 || (numBioproducts > 0 && sciCount == 0))) {
-                    ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_locchange", part.partInfo.title), 6, ScreenMessageStyle.UPPER_CENTER);
-                    StopResearch();
-                    StopResearch(BIOPRODUCTS);
-                }
-                last_subjectId = subjectId;
-                if (sciCount > 0)
-                {
-                    StopResearch();
-                    if (completed == 0)
-                        completed = (float) Planetarium.GetUniversalTime();
-                }
-                if (numEurekas > 0)
-                {
-                    var eurekasModules = vessel.FindPartModulesImplementing<StationScienceModule>();
-                    if (eurekasModules == null || eurekasModules.Count() < 1)
-                    {
-                        ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_detatch", part.partInfo.title), 2, ScreenMessageStyle.UPPER_CENTER);
-                    }
-                }
-                if (numSolutions > 0)
-                {
-                    var solutionsModules = vessel.FindPartModulesImplementing<StationScienceModule>();
-                    if (solutionsModules == null || solutionsModules.Count() < 1)
-                    {
-                        ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_detatch", part.partInfo.title), 2, ScreenMessageStyle.UPPER_CENTER);
-                    }
-                }
-                /*
-                if (numKuarqs > 0)
-                {
-                    var kuarqModules = vessel.FindPartModulesImplementing<KuarqGenerator>();
-                    if (kuarqModules == null || kuarqModules.Count() < 1)
-                    {
-                        stopResearch(KUARQS);
-                    }
-                }
-                */
-                if (numBioproducts > 0 && Inoperable)
-                {
-                    StopResearch(BIOPRODUCTS);
-                }
-                if (requirements.ContainsKey(BIOPRODUCTS) && GetScienceCount() > 0 && numBioproducts < requirements[BIOPRODUCTS].amount)
-                //if (bioproductsRequired > 0 && GetScienceCount() > 0 && numBioproducts < bioproductsRequired)
-                {
-                    ResetExperiment();
-                }
-#if false
-                // make sure we keep updating while changes are possible
-                if (currentStatus == Status.Running
-                        || currentStatus == Status.Completed
-                        || currentStatus == Status.BadLocation)
-                    ReadyToDeploy(false);
-#endif
-                ScienceExperiment experiment = ResearchAndDevelopment.GetExperiment(experimentID);
-                if (currentStatus == Status.Running && !experiment.IsAvailableWhile(GetScienceSituation(vessel), vessel.mainBody))
-                {
-                    ScreenMessages.PostScreenMessage(Localizer.Format("Can't perform experiment here."), 6, ScreenMessageStyle.UPPER_CENTER);
-                    currentStatus = Status.BadLocation;
-                }
-
-
-                yield return new UnityEngine.WaitForSeconds(1f);
+                UpdateStatus();
+                yield return new WaitForSeconds(1.0f); // Update every second or adjust as needed
             }
         }
-
-
-
-        public override string GetInfo()
-        {
-            string ret = "";
-            string reqLab = "", reqCyclo = "", reqZoo = "";
-            foreach (var r in requirements)
-            {
-                if (ret != "") ret += "\n";
-                ret += r.Value.name +" "+Localizer.Format("#autoLOC_StatSci_Req", r.Value.amount);
-                if (r.Value.name == EUREKAS)
-                    reqLab = Localizer.Format("#autoLOC_StatSci_LabReq");
-                if (r.Value.name == KUARQS)
-                {
-                    double productionRequired = 0.01;
-                    if (kuarqHalflife > 0)
-                    {
-                        if (ret != "") ret += "\n";
-                        ret += Localizer.Format("#autoLOC_StatSci_KuarkHalf", kuarqHalflife);
-                        productionRequired = requirements[KUARQS].amount /* kuarqsRequired */ * (1 - Math.Pow(.5, 1.0 / kuarqHalflife));
-                        ret += "\n";
-                        ret += Localizer.Format("#autoLOC_StatSci_KuarkProd", productionRequired.ToString("F3"));
-                    }
-                    if (productionRequired > 1)
-                        reqCyclo = Localizer.Format("#autoLOC_StatSci_CycReqM", Math.Ceiling(productionRequired));
-                    else
-                        reqCyclo = Localizer.Format("#autoLOC_StatSci_CycReq");
-                }
-                if (r.Value.name == BIOPRODUCTS)
-                {
-                    double bioproductDensity = ResourceHelper.getResourceDensity(BIOPRODUCTS);
-                    if (bioproductDensity > 0)
-                        ret += Localizer.Format("#autoLOC_StatSci_BioMass", Math.Round( requirements[BIOPRODUCTS].amount /* bioproductsRequired */ * bioproductDensity + part.mass, 2));
-                    reqZoo = Localizer.Format("#autoLOC_StatSci_ZooReq");
-                }
-                if (r.Value.name == SOLUTIONS)
-                    reqLab = Localizer.Format("#autoLOC_StatSci_LabReq");
-            }
-#if false
-            //if (eurekasRequired > 0)
-            //{
-            //    ret += Localizer.Format("#autoLOC_StatSci_EuReq", eurekasRequired);
-            //    reqLab = Localizer.Format("#autoLOC_StatSci_LabReq");
-            //}
-            if (kuarqsRequired > 0)
-            {
-                if (ret != "") ret += "\n";
-                ret += Localizer.Format("#autoLOC_StatSci_KuarkReq", kuarqsRequired);
-                double productionRequired = 0.01;
-                if (kuarqHalflife > 0)
-                {
-                    if (ret != "") ret += "\n";
-                    ret += Localizer.Format("#autoLOC_StatSci_KuarkHalf", kuarqHalflife);
-                    productionRequired = kuarqsRequired * (1 - Math.Pow(.5, 1.0 / kuarqHalflife));
-                    ret += "\n";
-                    ret += Localizer.Format("#autoLOC_StatSci_KuarkProd", productionRequired);
-                }
-                if (productionRequired > 1)
-                    reqCyclo = Localizer.Format("#autoLOC_StatSci_CycReqM", Math.Ceiling(productionRequired));
-                else
-                    reqCyclo = Localizer.Format("#autoLOC_StatSci_CycReq");
-            }
-            if (bioproductsRequired > 0)
-            {
-                if (ret != "") ret += "\n";
-                ret += Localizer.Format("#autoLOC_StatSci_BioReq", bioproductsRequired);
-                double bioproductDensity = ResourceHelper.getResourceDensity(BIOPRODUCTS);
-                if (bioproductDensity > 0)
-                    ret += Localizer.Format("#autoLOC_StatSci_BioMass", Math.Round(bioproductsRequired * bioproductDensity + part.mass,2));
-                reqZoo = Localizer.Format("#autoLOC_StatSci_ZooReq");
-            }
-#endif
-            return ret + reqLab + reqCyclo + reqZoo + "\n\n" + base.GetInfo();
-        }
-
-#region Helper Functions
-
-        protected static ExperimentSituations GetScienceSituation(Vessel vessel)
-        {
-            switch (vessel.situation)
-            {
-                case Vessel.Situations.LANDED:
-                case Vessel.Situations.PRELAUNCH:
-                    return ExperimentSituations.SrfLanded;
-
-                case Vessel.Situations.SPLASHED:
-                    return ExperimentSituations.SrfSplashed;
-
-                case Vessel.Situations.FLYING:
-                    if (vessel.altitude < (double)vessel.mainBody.scienceValues.flyingAltitudeThreshold)
-                        return ExperimentSituations.FlyingLow;
-                    return ExperimentSituations.FlyingHigh;
-
-                default:
-                    if (vessel.altitude < (double)vessel.mainBody.scienceValues.spaceAltitudeThreshold)
-                        return ExperimentSituations.InSpaceLow;
-                    return ExperimentSituations.InSpaceHigh;
-            }
-        }
-#endregion
     }
 }
