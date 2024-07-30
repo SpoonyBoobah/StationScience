@@ -1,4 +1,21 @@
-﻿using System.Collections;
+﻿/*
+    This file is part of Station Science.
+
+    Station Science is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Station Science is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Station Science.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+using System.Collections;
 using UnityEngine;
 using KSP.Localization;
 using System;
@@ -38,7 +55,8 @@ namespace StationScience
             BadLocation,// Vessel is in a bad location for the experiment
             Storage,    // Experiment is in storage
             Inoperable, // Experiment is inoperable
-            Starved     // Experiment is starved of resources
+            Starved,     // Experiment is starved of resources
+            NotStarted  // Experiment has not been started
         }
 
         // Logging instance
@@ -92,13 +110,23 @@ namespace StationScience
         {
             foreach (var r in requirements)
             {
+                // Check if the required resource is null
+                if (r.Value == null || r.Value.Name == null)
+                {
+                    Log.Info($"{part.partInfo.title} required resource is null");
+                    currentStatus = Status.Idle;
+                    return false;
+                }
+
                 double amount = GetResourceAmount(r.Value.Name);
                 Log.Info($"{part.partInfo.title} {r.Value.Name}: {amount}/{r.Value.Amount:F1}");
+
                 if (Math.Round(amount, 2) < r.Value.Amount)
                     return false;
             }
             return true;
         }
+
 
         // Method to check if the required parts are present on the vessel
         private bool CheckRequiredParts()
@@ -132,6 +160,8 @@ namespace StationScience
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
+
+            // Ensure part information is available
             if (part.partInfo != null)
             {
                 node = GameDatabase.Instance.GetConfigs("PART")
@@ -140,36 +170,19 @@ namespace StationScience
                     .Single(n => n.GetValue("name") == moduleName);
             }
 
-            var resourceDefinitions = PartResourceLibrary.Instance.resourceDefinitions;
-            foreach (ConfigNode resNode in node.GetNodes("REQUIREMENT"))
-            {
-                try
-                {
-                    string name = resNode.GetValue("name");
-                    float amount = float.Parse(resNode.GetValue("maxAmount"));
-                    requirements.Add(name, new Requirement(name, amount));
-
-                    var def = resourceDefinitions[name];
-                    if (def.resourceTransferMode != ResourceTransferMode.NONE)
-                    {
-                        var resource = part.AddResource(resNode);
-                        part.Resources.Remove(resource);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log?.Error($"Error loading resource requirements: {ex.Message}");
-                }
-            }
-
             // Load the requiredParts field if present
             if (node.HasValue("requiredParts"))
             {
                 requiredParts = node.GetValue("requiredParts");
             }
 
+            // Add default requirements if they are not already added
             AddDefaultRequirements();
+
+            // Update the status after loading
+            UpdateStatus();
         }
+
 
         // Method to add default requirements if they are not already added
         private void AddDefaultRequirements()
@@ -201,7 +214,7 @@ namespace StationScience
             StartCoroutine(UpdateStatusCoroutine());
         }
 
-        // Event to start the experiment
+        // Event to start the experiment THIS IS "Start Experiment @ Load in
         [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_startExp", active = true)]
         public void StartExperiment()
         {
@@ -234,7 +247,7 @@ namespace StationScience
         public void StartExpAction(KSPActionParam p) => StartExperiment();
 
         // Event to finalize the experiment
-        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_finalizeExp", active = true)]
+        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_finalizeExp", active = false)]
         public void FinalizeExperiment()
         {
             // Check if all experiment requirements are met
@@ -294,7 +307,7 @@ namespace StationScience
 
 
         // Action to finalize the experiment, usable in action groups
-        [KSPAction("#autoLOC_StatSci_finalizeExp")]
+        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_finalizeExp", active = false)]
         public void FinalizeExpAction(KSPActionParam p)
         {
             FinalizeExperiment();
@@ -341,23 +354,45 @@ namespace StationScience
 
             // Check if resource requirements are met
             bool allRequirementsMet = true;
+            bool allRequirementsZeroOrNull = true;
+
             foreach (var r in requirements)
             {
-                double amount = GetResourceAmount(r.Value.Name);
+                var resource = GetResource(r.Value.Name);
+                if (resource == null)
+                {
+                    Log.Info($"{r.Value.Name} resource is null.");
+                    allRequirementsMet = false;
+                    break;
+                }
+                
+                double amount = resource.amount;
                 if (amount < r.Value.Amount)
                 {
                     Log.Info($"{r.Value.Name} resource requirement not met. Current amount: {amount}, required: {r.Value.Amount}");
                     allRequirementsMet = false;
                     break;
                 }
+
+                if (r.Value.Amount != 0)
+                {
+                    allRequirementsZeroOrNull = false;
+                }
             }
 
-            if (isSandbox)
+            if (allRequirementsZeroOrNull)
+            {
+                Log.Info("All resource requirements are zero or null, setting status to Idle.");
+                currentStatus = Status.Idle;
+                Events["FinalizeExperiment"].active = currentStatus == Status.Completed;
+
+            }
+            else if (isSandbox)
             {
                 if (allRequirementsMet)
                 {
-                    Log.Info("All resource requirements met in Sandbox mode, setting status to Storage.");
-                    currentStatus = Status.Storage;
+                    Log.Info("All resource requirements met in Sandbox mode, setting status to Completed.");
+                    currentStatus = Status.Completed; // Change to Completed
                 }
                 else if (currentStatus != Status.Running)
                 {
@@ -365,63 +400,70 @@ namespace StationScience
                     currentStatus = Status.Idle;
                 }
                 Events["FinalizeExperiment"].active = currentStatus == Status.Completed;
+                Log.Info($"FinalizeActive: {Events["FinalizeExperiment"].active}");
                 return; // Skip science count check in Sandbox mode
-            }
-
-            // Non-Sandbox mode logic
-            if (GetScienceCount() > 0)
-            {
-                Log.Info("Science count is greater than 0, setting status to Completed.");
-                currentStatus = Status.Completed;
             }
             else
             {
-                // Check the vessel’s situation
-                switch (vessel.situation)
+                // Non-Sandbox mode logic
+                if (GetScienceCount() > 0)
                 {
-                    case Vessel.Situations.LANDED:
-                    case Vessel.Situations.SPLASHED:
-                    case Vessel.Situations.PRELAUNCH:
-                        Log.Info("Vessel in a bad location, setting status to BadLocation.");
-                        currentStatus = Status.BadLocation;
-                        break;
-                    default:
-                        if (Finished())
-                        {
-                            Log.Info("Experiment finished, setting status to Storage.");
-                            currentStatus = Status.Storage;
-                        }
-                        else if (currentStatus != Status.Running)
-                        {
-                            Log.Info("Experiment not running, setting status to Idle.");
-                            currentStatus = Status.Idle;
-                        }
-                        break;
+                    Log.Info("Science count is greater than 0, setting status to Completed.");
+                    currentStatus = Status.Completed;
                 }
-
-                if (currentStatus == Status.Running)
+                else
                 {
-                    foreach (var r in requirements)
+                    // Check the vessel’s situation
+                    switch (vessel.situation)
                     {
-                        double amount = GetResourceAmount(r.Value.Name);
-                        if (amount < r.Value.Amount)
-                        {
-                            Log.Info($"{r.Value.Name} resource starved. Current amount: {amount}, required: {r.Value.Amount}");
-                            currentStatus = Status.Starved;
+                        case Vessel.Situations.LANDED:
+                        case Vessel.Situations.SPLASHED:
+                        case Vessel.Situations.PRELAUNCH:
+                            Log.Info("Vessel in a bad location, setting status to BadLocation.");
+                            currentStatus = Status.BadLocation;
                             break;
+                        default:
+                            if (Finished())
+                            {
+                                Log.Info("Experiment finished, setting status to Storage.");
+                                currentStatus = Status.Storage;
+                            }
+                            else if (currentStatus != Status.Running)
+                            {
+                                Log.Info("Experiment not running, setting status to Idle.");
+                                currentStatus = Status.Idle;
+                            }
+                            break;
+                    }
+
+                    if (currentStatus == Status.Running)
+                    {
+                        foreach (var r in requirements)
+                        {
+                            double amount = GetResourceAmount(r.Value.Name);
+                            if (amount < r.Value.Amount)
+                            {
+                                Log.Info($"{r.Value.Name} resource starved. Current amount: {amount}, required: {r.Value.Amount}");
+                                currentStatus = Status.Starved;
+                                break;
+                            }
                         }
+                    }
+
+                    if (currentStatus == Status.Starved)
+                    {
+                        Log.Info("Experiment starved, setting status to Idle.");
+                        currentStatus = Status.Idle;
                     }
                 }
 
-                if (currentStatus == Status.Starved)
-                {
-                    Log.Info("Experiment starved, setting status to Idle.");
-                    currentStatus = Status.Idle;
-                }
+                // Update the visibility of the FinalizeExperiment button
+                Events["FinalizeExperiment"].active = currentStatus == Status.Completed;
+                Log.Info($"FinalizeActive: {Events["FinalizeExperiment"].active}");
+                
+                // Update the visibility of the default KSP Science UI trigger
+                Events["StartExperiment"].active = currentStatus == Status.Idle;
             }
-
-            // Update the visibility of the FinalizeExperiment button
-            Events["FinalizeExperiment"].active = currentStatus == Status.Completed;
         }
 
         // Method to get the science count, with added logging for debugging
