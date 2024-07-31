@@ -52,7 +52,7 @@ namespace StationScience
         {
             Idle,       // Experiment is idle
             Running,    // Experiment is running
-            Completed,  // Experiment is completed
+            Finished,  // Experiment is completed and ready to be stored or transmitted for science points.
             BadLocation,// Vessel is in a bad location for the experiment
             Storage,    // Experiment is in storage, meaning the experiment was finished but instead of transmitting the results, in "Storage" the experiment has to be "reset" before doing anything else.
             Inoperable, // Experiment is inoperable (NOTE: Do not think this is used at any point???)
