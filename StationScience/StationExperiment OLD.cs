@@ -200,11 +200,6 @@ namespace StationScience
         // Method called when the experiment module is started
         public override void OnStart(StartState state)
         {
-#if DEBUG
-            Log = new Log("StationScience", Log.LEVEL.INFO);
-#else
-            Log = new Log("StationScience", Log.LEVEL.ERROR);
-#endif
             base.OnStart(state);
             if (state == StartState.Editor) return;
 
@@ -292,7 +287,7 @@ namespace StationScience
                 if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX)
                 {
                     // Submit the collected science data, triggering the display of the results dialog
-                    //ResearchAndDevelopment.Instance.SubmitScienceData(experimentResult, ResearchAndDevelopment.Instance.Science, null);
+                    ResearchAndDevelopment.Instance.SubmitScienceData(experimentResult, ResearchAndDevelopment.Instance.Science, null);
                 }
 
                 // Disable the "FinalizeExperiment" event to prevent further calls

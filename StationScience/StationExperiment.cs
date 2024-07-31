@@ -22,6 +22,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using System.Collections;
+using KSP_Log;
 
 namespace StationScience
 {
@@ -50,13 +51,13 @@ namespace StationScience
         // Enumeration to represent the status of the experiment
         public enum Status
         {
-            Idle,       // Experiment is idle
-            Running,    // Experiment is running
+            Idle,       // Experiment is idle, meaning it has not been started and has no requirements prepared.
+            Running,    // Experiment is running, so requirements have been added and are collecting the requirements from the appropriate lab.
             Finished,  // Experiment is completed and ready to be stored or transmitted for science points.
-            BadLocation,// Vessel is in a bad location for the experiment
-            Storage,    // Experiment is in storage, meaning the experiment was finished but instead of transmitting the results, in "Storage" the experiment has to be "reset" before doing anything else.
-            Inoperable, // Experiment is inoperable (NOTE: Do not think this is used at any point???)
-            Starved,     // Experiment is starved of resources (NOTE: Do not think this is used at any point???)
+            BadLocation,// Vessel is in a bad location for the experiment and cannot be started.
+            Storage,    // Experiment is in storage, meaning the experiment was finished but instead of transmitting the results the result is "stored / saved" to be returned home, in "Storage" the experiment has to be "reset" or transmitted before doing anything else.
+            Inoperable, // Experiment is inoperable (NOTE: Do not think this is properly used at any point???)
+            Starved,     // Experiment is starved of resources (NOTE: Do not think this is properly used at any point???)
         }
 
         // Dictionary to hold experiment requirements
@@ -82,6 +83,9 @@ namespace StationScience
         // Field for specifying required parts
         [KSPField(isPersistant = false)] public string requiredParts = ""; // Comma-separated list of part names
 
+        // Logging instance
+        static Log Log;
+
         // Coroutine to periodically update the status and is constantly monitored and managed in real-time, allowing the game to react appropriately to changes in the experiment's state.
         private IEnumerator UpdateStatusCoroutine()
         {
@@ -104,6 +108,9 @@ namespace StationScience
                 yield return new WaitForSeconds(1.0f); // Update every second or adjust as needed
             }
         }
+
+        // Method to update the status of the experiment
+        
 
         private void UpdateRunning()
         {
