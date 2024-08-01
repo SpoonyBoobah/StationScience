@@ -16,6 +16,8 @@
     <KSPDIR Condition="'$(KSPDIR)' == ''">D:\KSP DEV</KSPDIR>
     <!-- Define the output destination directory -->
     <CopyDestinationDir>$(KSPDIR)\GameData\StationScience\Plugins</CopyDestinationDir>
+    <!-- Define the path to the executable to run -->
+    <PostBuildExePath>$(KSPDIR)\KSP_x64.exe</PostBuildExePath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
@@ -73,7 +75,10 @@
 
   <!-- Copy the built DLL to the specified directory after the build -->
   <Target Name="PostBuild" AfterTargets="Build">
+    <!-- Copy DLL to destination folder -->
     <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(CopyDestinationDir)" />
+    <!-- Run the executable -->
+    <Exec Command="&quot;$(PostBuildExePath)&quot;" />
   </Target>
 
 

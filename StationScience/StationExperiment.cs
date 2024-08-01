@@ -24,7 +24,6 @@ using UnityEngine;
 using System.Collections;
 using KSP_Log;
 using System.Diagnostics.Eventing.Reader;
-using static StationScience.StationExperiment;
 
 namespace StationScience
 {
@@ -35,7 +34,6 @@ namespace StationScience
         public const string KUARQS = "Kuarqs";
         public const string BIOPRODUCTS = "Bioproducts";
         public const string SOLUTIONS = "Solutions";
-
 
         // Inner class to represent a requirement with a name and amount
         internal class Requirement
@@ -88,6 +86,21 @@ namespace StationScience
         // Logging instance
         static Log Log;
 
+        // Method to check if the vessel is in a boring location for experiments
+        public static bool CheckBoring(Vessel vessel, bool msg = false)
+        {
+            //Log?.Info($"{vessel.Landed}, {vessel.landedAt}, {vessel.launchTime}, {vessel.situation}, {vessel.orbit.referenceBody.name}"); //DISABLED due to log spam!
+            if (vessel.orbit.referenceBody == FlightGlobals.GetHomeBody() &&
+                (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH ||
+                vessel.situation == Vessel.Situations.SPLASHED || vessel.altitude <= vessel.orbit.referenceBody.atmosphereDepth))
+            {
+                if (msg)
+                    ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_boring"), 6, ScreenMessageStyle.UPPER_CENTER);
+                return true;
+            }
+            return false;
+        }
+
         // Coroutine to periodically update the status and is constantly monitored and managed in real-time, allowing the game to react appropriately to changes in the experiment's state.
         private IEnumerator UpdateStatusCoroutine()
         {
@@ -114,39 +127,14 @@ namespace StationScience
             }
         }    
             
-        private void SetStatus(Status status)
-        {       
-        // Nothing to do
-        if(status == currentStatus)
-            return;
-
-        currentStatus = status;
-
-        // If you need to do things when you enter a status do them here
-        switch(currentStatus)
-        {
-            case Status.Idle:
-                OnEnterIdle();
-                break;
-            case Status.Running:
-                OnEnterRunning(); // Do things that should happen when you enter running
-                break;
-            case Status.Finished:
-                OnEnterFinished();
-                break;
-            case Status.Storage:
-                OnEnterStorage();
-                break;
-        }
-        }
-
         private void UpdateIdle()
         {
+             Log?.Info($"Updating status for {part.partInfo.title}");
             // Check if any of the resource requirements are null, meaning the experiment pod has no populated requirements therefore has not been started!
             if (eurekasRequired == null || kuarqsRequired == null || bioproductsRequired == null || solutionsRequired == null)
             {
                 // Resources not yet initialized, so the experiment remains Idle
-                Log.Info("All resource requirements null, status is Idle.");
+                Log?.Info("All resource requirements null, status is Idle.");
                 return;
             }
 
@@ -169,11 +157,20 @@ namespace StationScience
         {
 
         }
-        
-        private void OnEnterIdle()
+
+        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_startExp", active = true)]        
+        private bool OnEnterIdle()
         {
+            // Check if the experiment is boring; if it is, remain idle (return false)
+            if (CheckBoring(vessel, true)) 
+            {
+                return false;
+            }
 
+          UpdateIdle();
 
+            // If we couldn't exit idle, return false
+            return false;
         }
         private void OnEnterRunning()
         {
@@ -192,8 +189,18 @@ namespace StationScience
 
         private void OnExitIdle()
         {
-            // Do things you do when you exit the Idle state, trigger the switch????
-        }
+            // Log the transition for debugging purposes
+            Log?.Info($"Exiting Idle state for {part.partInfo.title}");
+            
+            // Successfully exited idle, so disable the StartExperiment event and return true
+            Events["StartExperiment"].active = false;
 
+            // Update the experiment status to Running
+            currentStatus = Status.Running;
+
+             // Perform any other actions necessary when exiting Idle
+            OnEnterRunning();
+            
+        }
     }
 }
