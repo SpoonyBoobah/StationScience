@@ -23,6 +23,8 @@ using System.Text;
 using UnityEngine;
 using System.Collections;
 using KSP_Log;
+using System.Diagnostics.Eventing.Reader;
+using static StationScience.StationExperiment;
 
 namespace StationScience
 {
@@ -33,7 +35,7 @@ namespace StationScience
         public const string KUARQS = "Kuarqs";
         public const string BIOPRODUCTS = "Bioproducts";
         public const string SOLUTIONS = "Solutions";
-    
+
 
         // Inner class to represent a requirement with a name and amount
         internal class Requirement
@@ -51,12 +53,12 @@ namespace StationScience
         // Enumeration to represent the status of the experiment
         public enum Status
         {
-            Idle,       // Experiment is idle, meaning it has not been started and has no requirements prepared.
-            Running,    // Experiment is running, so requirements have been added and are collecting the requirements from the appropriate lab.
-            Finished,  // Experiment is completed and ready to be stored or transmitted for science points.
-            BadLocation,// Vessel is in a bad location for the experiment and cannot be started.
-            Storage,    // Experiment is in storage, meaning the experiment was finished but instead of transmitting the results the result is "stored / saved" to be returned home, in "Storage" the experiment has to be "reset" or transmitted before doing anything else.
-            Inoperable, // Experiment is inoperable (NOTE: Do not think this is properly used at any point???)
+            Idle,        // Experiment is idle, meaning it has not been started and has no requirements prepared.
+            Running,     // Experiment is running, so requirements have been added and are collecting the requirements from the appropriate lab.
+            Finished,    // Experiment is completed and ready to be stored or transmitted for science points.
+            BadLocation, // Vessel is in a bad location for the experiment and cannot be started.
+            Storage,     // Experiment is in storage, meaning the experiment was finished but instead of transmitting the results the result is "stored / saved" to be returned home, in "Storage" the experiment has to be "reset" or transmitted before doing anything else.
+            Inoperable,  // Experiment is inoperable (NOTE: Do not think this is properly used at any point???)
             Starved,     // Experiment is starved of resources (NOTE: Do not think this is properly used at any point???)
         }
 
@@ -64,10 +66,10 @@ namespace StationScience
         internal Dictionary<string, Requirement> requirements = new();
 
         // Experiment requirements fields
-        [KSPField(isPersistant = false)] public int eurekasRequired;
-        [KSPField(isPersistant = false)] public int kuarqsRequired;
-        [KSPField(isPersistant = false)] public int bioproductsRequired;
-        [KSPField(isPersistant = false)] public int solutionsRequired;
+        [KSPField(isPersistant = false)] public int? eurekasRequired;
+        [KSPField(isPersistant = false)] public int? kuarqsRequired;
+        [KSPField(isPersistant = false)] public int? bioproductsRequired;
+        [KSPField(isPersistant = false)] public int? solutionsRequired;
         [KSPField(isPersistant = false)] public float kuarqHalflife;
 
         // GUI fields for kuarq decay and experiment status
@@ -91,77 +93,88 @@ namespace StationScience
         {
             while (true)
             {
-                UpdateStatus();
-
                 // Call status-specific update function
                 switch(currentStatus)
                 {
+                    case Status.Idle:
+                        UpdateIdle();
+                        break;
                     case Status.Running:
                         UpdateRunning();
                         break;
-
                     case Status.Finished:
                         UpdateFinished();
+                        break;
+                    case Status.Storage:
+                        UpdateStorage();
                         break;
                 }
 
                 yield return new WaitForSeconds(1.0f); // Update every second or adjust as needed
             }
-        }
-
-        // Method to update the status of the experiment
-        
-
-        private void UpdateRunning()
-        {
-            // Do things that should happen during running stage
-
-            // Definitely treat "Finished" as it's own state rather than checking every tick on every state
-            if(Finished())
-            {
-                SetStatus(Status.Finished); // new "Finished" status
-            }
-        }
-
-        private void UpdateFinished()
-        {
-            // Maybe every now and then we nudge the player or something?
-        }
-
+        }    
+            
         private void SetStatus(Status status)
         {       
         // Nothing to do
         if(status == currentStatus)
             return;
 
-        // If you need to do things when you leave a status do them here
-
-        switch(currentStatus)
-        {
-            case Status.Idle: // We're leaving idle
-                OnExitIdle();
-                break;
-        }
-
         currentStatus = status;
 
         // If you need to do things when you enter a status do them here
         switch(currentStatus)
         {
+            case Status.Idle:
+                OnEnterIdle();
+                break;
             case Status.Running:
                 OnEnterRunning(); // Do things that should happen when you enter running
                 break;
             case Status.Finished:
                 OnEnterFinished();
                 break;
+            case Status.Storage:
+                OnEnterStorage();
+                break;
         }
         }
 
-        private void OnExitIdle()
+        private void UpdateIdle()
         {
-            // Do things you do when you leave the idle state
+            // Check if any of the resource requirements are null, meaning the experiment pod has no populated requirements therefore has not been started!
+            if (eurekasRequired == null || kuarqsRequired == null || bioproductsRequired == null || solutionsRequired == null)
+            {
+                // Resources not yet initialized, so the experiment remains Idle
+                Log.Info("All resource requirements null, status is Idle.");
+                return;
+            }
+
+            // If all resources are correctly initialized, transition from Idle to another state.
+            OnExitIdle(); // Assuming that the experiment should start running when resources are set
         }
 
+        private void UpdateRunning()
+        {
+
+
+        }
+
+        private void UpdateFinished()
+        {
+
+        }
+
+        private void UpdateStorage()
+        {
+
+        }
+        
+        private void OnEnterIdle()
+        {
+
+
+        }
         private void OnEnterRunning()
         {
             // Do things you do when you enter the running state
@@ -172,6 +185,15 @@ namespace StationScience
             // Do things you do when you enter the finish state
         }
 
+        private void OnEnterStorage()
+        {
+            
+        }
+
+        private void OnExitIdle()
+        {
+            // Do things you do when you exit the Idle state, trigger the switch????
+        }
 
     }
 }

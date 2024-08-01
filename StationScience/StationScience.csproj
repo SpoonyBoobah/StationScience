@@ -14,6 +14,8 @@
     <Configurations>Debug;Release</Configurations>
     <!-- Define KSPDIR property with a default value -->
     <KSPDIR Condition="'$(KSPDIR)' == ''">D:\KSP DEV</KSPDIR>
+    <!-- Define the output destination directory -->
+    <CopyDestinationDir>$(KSPDIR)\GameData\StationScience\Plugins</CopyDestinationDir>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
@@ -68,6 +70,11 @@
     <Compile Include="StnSciParameters.cs" />
     <Compile Include="StnSciScenario.cs" />
   </ItemGroup>
+
+  <!-- Copy the built DLL to the specified directory after the build -->
+  <Target Name="PostBuild" AfterTargets="Build">
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(CopyDestinationDir)" />
+  </Target>
 
 
 </Project>
