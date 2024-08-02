@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-<PropertyGroup>
-  <LangVersion>9.0</LangVersion>
-</PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
 
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
@@ -16,6 +16,9 @@
     <KSPDIR Condition="'$(KSPDIR)' == ''">D:\KSP DEV</KSPDIR>
     <!-- Define the output destination directory -->
     <CopyDestinationDir>$(KSPDIR)\GameData\StationScience\Plugins</CopyDestinationDir>
+    <!-- Define the source folder to copy and the destination folder -->
+    <SourceFolder Condition="'$(SourceFolder)' == ''">C:\Users\craig\Dropbox\Coding Projects\GitHub\StationScience\GameData\StationScience</SourceFolder>
+    <DestinationFolder>$(KSPDIR)\GameData\StationScience</DestinationFolder>
     <!-- Define the path to the executable to run -->
     <PostBuildExePath>$(KSPDIR)\KSP_x64.exe</PostBuildExePath>
   </PropertyGroup>
@@ -73,6 +76,11 @@
     <Compile Include="StnSciScenario.cs" />
   </ItemGroup>
 
+  <!-- Gather all files from the SourceFolder recursively -->
+  <ItemGroup>
+    <FilesToCopy Include="$(SourceFolder)\**\*" />
+  </ItemGroup>
+
   <!-- Copy the built DLL to the specified directory after the build -->
   <Target Name="PostBuild" AfterTargets="Build">
     <!-- Copy DLL to destination folder -->
@@ -80,6 +88,5 @@
     <!-- Run the executable -->
     <Exec Command="&quot;$(PostBuildExePath)&quot;" />
   </Target>
-
 
 </Project>
