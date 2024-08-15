@@ -86,18 +86,18 @@ namespace StationScience
         [KSPField(isPersistant = false)] public string requiredParts = ""; // Comma-separated list of part names
 
         // Logging instance ??Uses KSP_Log.dll from SpaceTuxLibrary??
-        static Log Log;
+        //static Log Debug.Log;
 
         // Method to check if the vessel is in a "boring" location for experiments
         public static bool CheckBoring(Vessel vessel, bool msg = false)
         {
-            Log?.Info($"{vessel.Landed}, {vessel.landedAt}, {vessel.launchTime}, {vessel.situation}, {vessel.orbit.referenceBody.name}"); //DISABLED due to log spam!
+            //Debug.Log($"{vessel.Landed}, {vessel.landedAt}, {vessel.launchTime}, {vessel.situation}, {vessel.orbit.referenceBody.name}"); //DISABLED due to log spam!
             if (vessel.orbit.referenceBody == FlightGlobals.GetHomeBody() &&
                 (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH ||
                 vessel.situation == Vessel.Situations.SPLASHED || vessel.altitude <= vessel.orbit.referenceBody.atmosphereDepth))
             {
                 if (msg) //If experiment is in bad location then create a pop-up message on screen saying so!
-                    ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_boring"), 6, ScreenMessageStyle.UPPER_CENTER);
+                    PopUpMessage("#autoLOC_StatSci_screen_boring"); //"Too boring here, go to space!"
                 return true;
             }
             return false;
@@ -125,8 +125,8 @@ namespace StationScience
 
             // Add default requirements if they are not already added
             AddDefaultRequirements();
-              
-            
+
+
         }
 
         // Method to add default requirements if they are not already added.
@@ -142,6 +142,24 @@ namespace StationScience
                 requirements.Add(SOLUTIONS, new Requirement(SOLUTIONS, solutionsRequired));
         }
 
+        private void RemoveAllReqs()
+        {
+            var reqsToRemove = new List<string>();
+
+            foreach (var req in requirements)
+            {
+                SetResourceMaxAmount(req.Value.Name, 0);
+                reqsToRemove.Add(req.Key);
+            }
+
+            foreach (var key in reqsToRemove)
+            {
+                requirements.Remove(key);
+            }
+
+        }
+
+
         // Helper methods to get and set resources on the part.
         public PartResource GetResource(string name) => ResourceHelper.getResource(part, name);
         public double GetResourceAmount(string name) => ResourceHelper.getResourceAmount(part, name);
@@ -151,7 +169,7 @@ namespace StationScience
         //Method to disable all KSPEvent buttons from the mod. TESTING PURPOSES ONLY!
         private void DisableAllEvents()
         {
-            //Events[nameof(StartExperiment)].active = false;
+            Events[nameof(StartExperiment)].active = false;
             Events[nameof(FinishExperiment)].active = false;
             Events[nameof(DeployExperiment)].active = false;
 
@@ -162,10 +180,10 @@ namespace StationScience
         {
             base.OnStart(state);
             if (state == StartState.Editor || state == StartState.None)
-                
+
                 return;
 
-            //part.force_activate();
+            part.force_activate();
             StartCoroutine(UpdateStatusCoroutine());
         }
 
@@ -180,9 +198,18 @@ namespace StationScience
                     case Status.Running:
                         UpdateRunning();
                         break;
+                    case Status.Idle:
+                        UpdateIdle();
+                        //DisableAllEvents(); //For debugging purposes, this will disable all Event UI buttons whilst in Idle state.
+                        break;
+                    case Status.Finished:
+                        UpdateFinished();
+                        break;
+                    case Status.Storage:
+                        UpdateStorage();
+                        //RemoveAllReqs(); //For debugging purposes, this will remove all requirement resources from the experiment without any checks being done.
+                        break;
                 }
-
-                DisableAllEvents();
 
                 yield return new WaitForSeconds(1.0f); // Update every second or adjust as needed
             }
@@ -204,13 +231,121 @@ namespace StationScience
                 case Status.Running:
                     OnRunningEnter();
                     break;
+                case Status.Storage:
+                    OnEnterStorage();
+                    break;
             }
 
         }
 
-        private void UpdateRunning()
+        private void UpdateIdle()
         {
+            // Check if the current status of the experiment is "Idle"
+            if (currentStatus == Status.Idle)
+            {
+                // Enable the "Start Experiment" UI button by setting its 'active' property to true
+                Events[nameof(StartExperiment)].active = true;
 
+                // Disable the "Deploy Experiment" UI button by setting its 'active' property to false
+                // This button is typically used for starting or deploying the experiment in stock KSP.
+                Events[nameof(DeployExperiment)].active = false;
+
+                // Set the 'Deployed' state to false indicating that the experiment is not deployed
+                Deployed = false;
+            }
+        }
+
+
+        private bool UpdateRunning()
+        {
+            // Ensure that the experiment is in the running state.
+            // If the current status is not 'Running', there's nothing to update, so return false.
+            if (currentStatus != Status.Running)
+            {
+                return false;
+            }
+
+            // Disable the "Start Experiment" and "Deploy Experiment" buttons when the experiment is running.
+            Events[nameof(StartExperiment)].active = false;
+            Events[nameof(DeployExperiment)].active = false;
+
+            // Iterate over each requirement in the 'requirements' dictionary.
+            foreach (var r in requirements)
+            {
+                // Check if the requirement or its name is null.
+                // If either is null, log an error and revert the experiment status to 'Idle'.
+                if (r.Value?.Name == null)
+                {
+                    Debug.Log($"{part.partInfo.title} ERROR! required resource is null in Running");
+                    SetStatus(Status.Idle); // Use SetStatus to properly handle state transitions.
+                    return false; // Return false as the experiment cannot run without valid resources.
+                }
+
+                // Get the current amount of the required resource from the part.
+                double amount = GetResourceAmount(r.Value.Name);
+                // Round the amount down to 2 decimal places.
+                double roundedAmount = Math.Floor(amount * 100) / 100;
+                // Log the current amount and required amount for debugging purposes.
+                Debug.Log($"{part.partInfo.title} {r.Value.Name}: {roundedAmount:F2}/{r.Value.Amount:F1}");
+
+
+                // Check if the available amount of the resource is less than the required amount.
+                // If the resource amount is insufficient, return false to indicate that the experiment cannot continue.
+                if (roundedAmount < r.Value.Amount)
+                {
+                    return false;
+                }
+            }
+            //Ensure the experiment is not "Deployed"
+            Deployed = false;
+            // If all requirements are met (sufficient resources for each requirement), call the FinishExperiment method to conclude the experiment.
+            FinishExperiment();
+            // Return true to indicate that the experiment has successfully finished
+            return true;
+            
+        }
+
+        public void UpdateFinished()
+        {
+            // Check if the experiment is currently deployed
+            if (Deployed) // Using the inherited stock KSP Deployed property/field
+            {
+                // Set the status of the experiment to "Storage"
+                SetStatus(Status.Storage);
+
+                // Disable the "Deploy Experiment" UI button by setting its 'active' property to false
+                // This button is not needed once the experiment has finished and is being stored
+                Events[nameof(DeployExperiment)].active = false;
+
+                // Disable the "Start Experiment" UI button by setting its 'active' property to false
+                // This ensures that no further actions can be initiated after the experiment is finished
+                Events[nameof(StartExperiment)].active = false;
+
+                // Remove all requirements related to the experiment
+                // This could involve clearing dependencies, conditions, or other constraints
+                RemoveAllReqs();
+            }
+        }
+
+
+        public void UpdateStorage()
+        {
+            int scienceCount = GetScienceCount(); //This pulls the count of how many ScienceData reports are stored in the experiment
+
+            if (scienceCount > 0) //If there is any ScienceReports stored...
+            {
+
+                //SetStatus(Status.Storage); //Then set the Status of the experiment to Storage
+                Events[nameof(StartExperiment)].active = false;
+                //Events[nameof(DeployExperiment)].active = false;
+            }
+            else // If no ScienceReports are stored (scienceCount is 0 or null)
+            { 
+                
+                SetStatus(Status.Idle); // Set the Status of the experiment to Idle
+                Deployed = false;
+
+            }
 
         }
 
@@ -219,14 +354,13 @@ namespace StationScience
         {
             if (currentStatus != Status.Idle)
             {
-                Log?.Info($"Cannot Start Experiment because we are not idle currentStatus = {currentStatus}"); //This should'nt ever happen, its just in case there is an error in the code which is showing the StartExp button in wrong state.
+                Debug.Log($"Cannot Start Experiment because we are not idle currentStatus = {currentStatus}"); //This should'nt ever happen, its just in case there is an error in the code which is showing the StartExp button in wrong state.
                 return;
             }
 
             if (CheckBoring(vessel, true)) // Check if the experiment is boring; if it is, remain idle (return false) and disable the Start Experiment button.
             {
-                ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_boring"), 6, ScreenMessageStyle.UPPER_CENTER);
-                Log?.Info("Cannot start Experiment here!");
+                Debug.Log("Cannot start Experiment here!");
                 return;
 
             }
@@ -234,18 +368,38 @@ namespace StationScience
             SetStatus(Status.Running); //When button is pressed the Staus of experiment will change to "Running" as long as the 2 checks above don't apply.
         }
 
-        [KSPEvent(guiActive = true, guiName = "#autoLOC_statsci_finishExp", active = true)]
         public void FinishExperiment()
         {
+
+            // Transition the experiment status to "Finished" after the requirements have been met.
+            SetStatus(Status.Finished);
+
+            // Disable the "Start Experiment" button since the experiment is now completed.
+            Events[nameof(StartExperiment)].active = false;
+
+            // Enable the "Deploy Experiment" button, allowing the player to deploy the results or store them.
+            Events[nameof(DeployExperiment)].active = true;
+
+            // The following two lines ensure the game engine refreshes the vessel's state and updates the UI accordingly.
+            // This is particularly important to force the game's Resources UI and other related interfaces to display
+            // the most up-to-date information, reflecting that the experiment is now finished and the requirements are no longer active.
+
+            // Temporarily take the vessel "off rails" to apply the latest state changes.
+            // This step forces the game engine to re-evaluate the vessel's situation, ensuring all state changes are recognized.
+            vessel.GoOffRails();
+
+            // Return the vessel "on rails" to continue normal game processing.
+            // This step re-engages the vessel with the game's physics and other systems, completing the refresh process.
+            vessel.GoOnRails();
 
         }
 
         private void OnIdleExit()
         {
             // Log the transition for debugging purposes
-            Log?.Info($"Exiting Idle state for {part.partInfo.title}");
+            Debug.Log($"Exiting Idle state for {part.partInfo.title}");
 
-            ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_started"), 6, ScreenMessageStyle.UPPER_CENTER); // Pop-up message "Started experiment!"
+            PopUpMessage("#autoLOC_StatSci_screen_started"); // Pop-up message "Started experiment!"
 
             // Successfully exited idle, so disable the StartExperiment event and return true
             Events[nameof(StartExperiment)].active = false;
@@ -254,17 +408,75 @@ namespace StationScience
             currentStatus = Status.Running;
 
         }
-
         private void OnRunningEnter()
         {
+            // Add default requirements for the experiment.
+            // This could involve setting up initial conditions or constraints.
+            AddDefaultRequirements();
+
+            // Temporarily take the vessel "off rails".
+            // This is often done to ensure that changes to the vessel's state or status are processed correctly.
+            vessel.GoOffRails();
+
+            // Return the vessel "on rails" to refresh the UI.
+            // This ensures that the vessel's state is updated in the game's UI after being taken off rails.
+            vessel.GoOnRails();
+
+            // Iterate over each requirement in the requirements collection.
             foreach (var r in requirements)
             {
+                // Set or update the maximum amount of the specified resource for each requirement.
+                // The resource is identified by its name, and the maximum amount is set as specified.
                 var resource = SetResourceMaxAmount(r.Value.Name, r.Value.Amount);
+
+                // If the resource amount is zero and the resource name is BIOPRODUCTS,
+                // set the maximum amount of the EUREKAS resource to zero.
+                // This handles specific cases where certain resources might need to be adjusted based on conditions.
                 if (resource.amount == 0 && r.Value.Name == BIOPRODUCTS)
+                {
                     SetResourceMaxAmount(EUREKAS, 0);
+                }
             }
         }
 
-        
+
+        public void OnEnterStorage()
+        {
+            // Ensure the experiment is in a valid state before transitioning to Storage.
+            if (currentStatus == Status.Storage)
+            {
+                Debug.Log("Experiment is already in Storage status.");
+                return; // No action needed if already in Storage.
+            }
+
+            // Transition the experiment status to 'Storage'.
+            SetStatus(Status.Storage);
+
+            // Mark the experiment as deployed. This might be necessary based on the Storage logic. This required to trigger Stock Science UI!
+            Deployed = true;
+
+            // Disable the StartExperiment event as the experiment should not be started from this state.
+            Events[nameof(StartExperiment)].active = false;
+
+            // Optionally, disable the DeployExperiment event if it should not be active in Storage.
+            // Uncomment if necessary based on your application’s logic.
+            // Events[nameof(DeployExperiment)].active = false;
+
+            // Remove all resource requirements as they are no longer relevant in Storage.
+            RemoveAllReqs();
+
+            // Log the transition for debugging and record-keeping.
+            Debug.Log($"Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
+
+            // Additional actions or notifications can be added here if needed.
+        }
+
+        //This acts as a shortcut method to making pop-up messages on screen
+        protected static void PopUpMessage(string message) 
+        {
+            ScreenMessages.PostScreenMessage(message, 6, ScreenMessageStyle.UPPER_CENTER);
+        }
+
+
     }
 }
