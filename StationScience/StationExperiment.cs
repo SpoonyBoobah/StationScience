@@ -443,17 +443,16 @@ namespace StationScience
             // Iterate over each requirement in the requirements collection.
             foreach (var r in requirements)
             {
+                // Debug line to output information about the current requirement.
+                //Debug.Log($"Processing requirement: Resource Name = {r.Value.Name}, Amount = {r.Value.Amount}");
+
                 // Set or update the maximum amount of the specified resource for each requirement.
                 // The resource is identified by its name, and the maximum amount is set as specified.
                 var resource = SetResourceMaxAmount(r.Value.Name, r.Value.Amount);
 
-                // If the resource amount is zero and the resource name is BIOPRODUCTS,
-                // set the maximum amount of the EUREKAS resource to zero.
-                // This handles specific cases where certain resources might need to be adjusted based on conditions.
-                if (resource.amount == 0 && r.Value.Name == BIOPRODUCTS)
-                {
-                    SetResourceMaxAmount(EUREKAS, 0);
-                }
+                // Debug line to confirm the resource has been updated.
+                //Debug.Log($"Resource '{r.Value.Name}' max amount set to {r.Value.Amount}");
+
             }
         }
 
@@ -483,7 +482,7 @@ namespace StationScience
             RemoveAllReqs();
 
             // Log the transition for debugging and record-keeping.
-            Debug.Log($"Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
+            //Debug.Log($"Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
 
             // Temporarily take the vessel "off rails".
             // This is often done to ensure that changes to the vessel's state or status are processed correctly.

@@ -22,10 +22,8 @@ using System.Linq;
 
 namespace StationScience
 {
-    /// <summary>
-    /// This module represents a science module for a space station.
-    /// It handles skill checks, efficiency bonuses, and lights animation.
-    /// </summary>
+    // This module represents a science module for a space station.
+    // It handles skill checks, efficiency bonuses, and lights animation.
     public class StationScienceModule : ModuleResourceConverter
     {
         // Determines the mode of the lights: 0 = off, 1 = auto, 2 = on
@@ -55,10 +53,8 @@ namespace StationScience
         // Animator module for controlling lights
         private ModuleAnimateGeneric animator = null;
 
-        /// <summary>
-        /// Checks if the crew has the required skills.
-        /// </summary>
-        /// <returns>True if at least one crew member has the required skills, otherwise false.</returns>
+        // Checks if the crew has the required skills.
+        // Returns true if at least one crew member has the required skills, otherwise false.
         public bool CheckSkill()
         {
             // If no specific skills are required, return true
@@ -80,26 +76,26 @@ namespace StationScience
             return false;
         }
 
-        /// <summary>
-        /// Pre-processes the module before conversion.
-        /// </summary>
+        // Pre-processes the module before conversion.
         protected override void PreProcessing()
         {
             float curTime = UnityEngine.Time.realtimeSinceStartup;
 
-            // Only check skills periodically
+            // Only check skills periodically to avoid constant checking
             if (IsActivated && (curTime - lastCheck > 0.1))
             {
                 lastCheck = curTime;
 
-                // Check if the module should be active
+                // Check if the module should be active based on crew skills and other conditions
                 if (!CheckSkill())
                 {
+                    // Stop the conversion if the required skills are not present
                     StopResourceConverter();
                     this.status = "Inactive; no " + requiredSkills;
                 }
                 else if (StationExperiment.CheckBoring(vessel, false))
                 {
+                    // Stop the conversion if the vessel is on the home planet (e.g., Kerbin)
                     StopResourceConverter();
                     this.status = "Inactive; on home planet";
                 }
@@ -109,6 +105,7 @@ namespace StationScience
                     int numScienceCrew = 0;
                     int totalExperience = 0;
 
+                    // Iterate through the crew members to count those with the required skills
                     foreach (var crew in part.protoModuleCrew)
                     {
                         foreach (var skill in skills)
@@ -120,28 +117,29 @@ namespace StationScience
                             }
                         }
                     }
+                    // Set the efficiency bonus based on the number of skilled crew and their experience
                     SetEfficiencyBonus((float)Math.Max(numScienceCrew + totalExperience * experienceBonus, 1.0));
                 }
             }
+            // Call the base class's PreProcessing method to ensure standard behavior
             base.PreProcessing();
         }
 
-        /// <summary>
-        /// Updates the lights based on the current lights mode and activation state.
-        /// </summary>
+        // Updates the lights based on the current lights mode and activation state.
         private void UpdateLights()
         {
             if (animator != null)
             {
+                // Determine if the lights should be active based on the lights mode and production state
                 bool animActive = this.IsActivated && actuallyProducing;
                 animActive = lightsMode switch
                 {
-                    2 => true, // Force on
+                    2 => true,  // Force on
                     0 => false, // Force off
                     _ => animActive // Auto mode
                 };
 
-                // Toggle animation based on the active state
+                // Toggle the light animation based on the active state
                 if (animActive && animator.Progress == 0 && animator.status.StartsWith("Locked", StringComparison.OrdinalIgnoreCase))
                 {
                     animator.allowManualControl = true;
@@ -157,48 +155,47 @@ namespace StationScience
             }
         }
 
-        /// <summary>
-        /// Prepares the recipe for conversion.
-        /// </summary>
-        /// <param name="deltaTime">Time since the last update.</param>
-        /// <returns>The prepared conversion recipe.</returns>
+        // Prepares the recipe for conversion.
+        // Returns the prepared conversion recipe.
         protected override ConversionRecipe PrepareRecipe(double deltaTime)
         {
+            // Call the base class's method to prepare the conversion recipe
             lastRecipe = base.PrepareRecipe(deltaTime);
             return lastRecipe;
         }
 
-        /// <summary>
-        /// Post-processes the results of the conversion.
-        /// </summary>
-        /// <param name="result">The results of the conversion.</param>
-        /// <param name="deltaTime">Time since the last update.</param>
+        // Post-processes the results of the conversion.
         protected override void PostProcess(ConverterResults result, double deltaTime)
         {
+            // Call the base class's PostProcess method to handle the conversion result
             base.PostProcess(result, deltaTime);
+
+            // Update the actuallyProducing flag based on the conversion result
             actuallyProducing = (result.TimeFactor > 0);
+
+            // Update the lights if the mode is set to automatic
             if (lightsMode == 1)
                 UpdateLights();
         }
 
-        /// <summary>
-        /// Called when the module is started.
-        /// </summary>
-        /// <param name="state">The state in which the module is started.</param>
+        // Called when the module is started.
         public override void OnStart(StartState state)
         {
+            // Call the base class's OnStart method to handle initial setup
             base.OnStart(state);
 
+            // If the module is started in the editor, exit the method early
             if (state == StartState.Editor)
                 return;
 
-            // Force activate the part
+            // Force activate the part so it starts processing resources immediately
             this.part.force_activate();
 
-            // Find and configure the animator module
+            // Find and configure the animator module for controlling lights
             animator = this.part.FindModulesImplementing<ModuleAnimateGeneric>().FirstOrDefault();
             if (animator != null)
             {
+                // Disable the manual control of the animator through the GUI
                 foreach (var field in animator.Fields)
                 {
                     if (field != null)
@@ -206,42 +203,44 @@ namespace StationScience
                 }
             }
 
+            // Update the lights mode based on the current setting
             UpdateLightsMode();
         }
 
-        /// <summary>
-        /// Updates the lights mode based on the current setting.
-        /// </summary>
+        // Updates the lights mode based on the current setting.
         private void UpdateLightsMode()
         {
+            // Set the name of the lights mode based on the current setting
             string lightsModeName = lightsMode switch
             {
-                0 => Localizer.Format("#autoLOC_StatSci_LightsOff"),
-                1 => Localizer.Format("#autoLOC_StatSci_LightsAuto"),
-                2 => Localizer.Format("#autoLOC_StatSci_LightsOn"),
-                _ => Localizer.Format("#autoLOC_StatSci_LightsAuto")
+                0 => Localizer.Format("#autoLOC_StatSci_LightsOff"),   // Lights off
+                1 => Localizer.Format("#autoLOC_StatSci_LightsAuto"),  // Lights automatic
+                2 => Localizer.Format("#autoLOC_StatSci_LightsOn"),    // Lights on
+                _ => Localizer.Format("#autoLOC_StatSci_LightsAuto")   // Default to automatic
             };
+
+            // Update the GUI name for the LightsMode event to reflect the current setting
             Events["LightsMode"].guiName = lightsModeName;
             UpdateLights();
         }
 
-        /// <summary>
-        /// Toggles the lights mode between off, auto, and on.
-        /// </summary>
+        // Toggles the lights mode between off, auto, and on.
         [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_LightsAuto", active = true)]
         public void LightsMode()
         {
+            // Cycle through the lights mode (off, auto, on)
             lightsMode = (lightsMode + 1) % 3;
             UpdateLightsMode();
         }
 
-        /// <summary>
-        /// Provides information about the module.
-        /// </summary>
-        /// <returns>A string describing the module's functionality.</returns>
+        // Provides information about the module.
+        // Returns a string describing the module's functionality.
         public override string GetInfo()
         {
+            // Get the basic info from the base class
             string info = base.GetInfo();
+
+            // Add information about the required skills if applicable
             if (!string.IsNullOrEmpty(requiredSkills) && requiredSkills != "NA")
             {
                 info += Localizer.Format("#autoLOC_StatSci_skillReq", requiredSkills);
