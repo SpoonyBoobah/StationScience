@@ -36,10 +36,10 @@ namespace StationScience
         public const string SOLUTIONS = "Solutions";
 
         // Inner class to represent a requirement with a name and amount
-        internal class Requirement
+        public class Requirement
         {
-            internal string Name { get; }
-            internal float Amount { get; }
+            internal string Name { get; set; }
+            internal float Amount { get; set; }
 
             internal Requirement(string name, float amount)
             {
@@ -72,10 +72,12 @@ namespace StationScience
         [KSPField(isPersistant = false)] public int solutionsRequired;
         [KSPField(isPersistant = false)] public float kuarqHalflife;
 
-        // GUI fields for kuarq decay.
-        [KSPField(isPersistant = false, guiName = "#autoLOC_StatSci_Decay", guiUnits = "#autoLOC_StatSci_Decayrate", guiActive = false, guiFormat = "F2")] public float kuarqDecay;
         //GUI field for experiment Status, IMPORTANT THIS IS THE FIELD THAT PUTS IN THE STATUS IN THE CONTEXT MENU IN-GAME AND ALSO DEFAULT SET THE EXPERIMENT STATUS TO IDLE! IT ALSO SAVES WHATEVER STATE THE EXPERIMENT IS IN FOR NEXT LOAD
-        [KSPField(isPersistant = true, guiName = "Status", guiActive = true)] public Status currentStatus = Status.Idle;
+        [KSPField(isPersistant = true, guiName = "Status", guiActive = true, groupName = "StationScience", groupDisplayName = "Experiment", groupStartCollapsed = false)]
+        public Status currentStatus = Status.Idle;
+        // GUI fields for kuarq decay.
+        [KSPField(isPersistant = false, guiName = "#autoLOC_StatSci_Decay", guiUnits = "#autoLOC_StatSci_Decayrate", guiActive = false, guiFormat = "F2", groupName = "StationScience", groupDisplayName = "StationScience", groupStartCollapsed = false)]
+        public float kuarqDecay;
 
         // Persistent fields for experiment progress tracking in KSP contracts
         [KSPField(isPersistant = true)] public float launched = 0;
@@ -159,12 +161,22 @@ namespace StationScience
 
         }
 
-
         // Helper methods to get and set resources on the part.
         public PartResource GetResource(string name) => ResourceHelper.getResource(part, name);
         public double GetResourceAmount(string name) => ResourceHelper.getResourceAmount(part, name);
         public double GetResourceMaxAmount(string name) => ResourceHelper.getResourceMaxAmount(part, name);
         public PartResource SetResourceMaxAmount(string name, double max) => ResourceHelper.setResourceMaxAmount(part, name, max);
+
+        // Overrides the GetInfo method to include the requirement info in the returned string.
+        public override string GetInfo()
+        {
+            // Generate the requirement information string using the existing method
+            string requirementInfo = GenerateRequirementInfo(requirements, kuarqHalflife, part.mass);
+
+            // Return the combined string of requirement info and the base class info
+            return requirementInfo + base.GetInfo();
+        }
+        
 
         //Method to disable all KSPEvent buttons from the mod. TESTING PURPOSES ONLY!
         private void DisableAllEvents()
@@ -192,11 +204,12 @@ namespace StationScience
         {
             while (true)
             {
-                // Call status-specific update function
+                // Call status-specific update functions.
                 switch (currentStatus)
                 {
                     case Status.Running:
                         UpdateRunning();
+                        UpdateKuarqDecay();
                         break;
                     case Status.Idle:
                         UpdateIdle();
@@ -211,7 +224,7 @@ namespace StationScience
                         break;
                 }
 
-                yield return new WaitForSeconds(1.0f); // Update every second or adjust as needed
+                yield return new WaitForSeconds(0.1f); // Update every second or adjust as needed
             }
         }
 
@@ -286,7 +299,7 @@ namespace StationScience
                 // Round the amount down to 2 decimal places.
                 double roundedAmount = Math.Floor(amount * 100) / 100;
                 // Log the current amount and required amount for debugging purposes.
-                Debug.Log($"{part.partInfo.title} {r.Value.Name}: {roundedAmount:F2}/{r.Value.Amount:F1}");
+                //Debug.Log($"{part.partInfo.title} {r.Value.Name}: {roundedAmount:F2}/{r.Value.Amount:F1}"); //Disabled as only for debugging purposes!
 
 
                 // Check if the available amount of the resource is less than the required amount.
@@ -302,7 +315,7 @@ namespace StationScience
             FinishExperiment();
             // Return true to indicate that the experiment has successfully finished
             return true;
-            
+
         }
 
         public void UpdateFinished()
@@ -340,8 +353,8 @@ namespace StationScience
                 //Events[nameof(DeployExperiment)].active = false;
             }
             else // If no ScienceReports are stored (scienceCount is 0 or null)
-            { 
-                
+            {
+
                 SetStatus(Status.Idle); // Set the Status of the experiment to Idle
                 Deployed = false;
 
@@ -349,7 +362,7 @@ namespace StationScience
 
         }
 
-        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_startExp", active = true)]
+        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_startExp", active = true, groupName = "StationScience", groupDisplayName = "Experiment")]
         public void StartExperiment()
         {
             if (currentStatus != Status.Idle)
@@ -366,6 +379,7 @@ namespace StationScience
             }
 
             SetStatus(Status.Running); //When button is pressed the Staus of experiment will change to "Running" as long as the 2 checks above don't apply.
+
         }
 
         public void FinishExperiment()
@@ -379,6 +393,10 @@ namespace StationScience
 
             // Enable the "Deploy Experiment" button, allowing the player to deploy the results or store them.
             Events[nameof(DeployExperiment)].active = true;
+            Events[nameof(DeployExperiment)].guiName = "#autoLOC_statsci_finishExp";
+            Events[nameof(DeployExperiment)].group.name = "StationScience";
+            Events[nameof(DeployExperiment)].group.displayName = "Experiment";
+
 
             // The following two lines ensure the game engine refreshes the vessel's state and updates the UI accordingly.
             // This is particularly important to force the game's Resources UI and other related interfaces to display
@@ -439,7 +457,6 @@ namespace StationScience
             }
         }
 
-
         public void OnEnterStorage()
         {
             // Ensure the experiment is in a valid state before transitioning to Storage.
@@ -468,15 +485,201 @@ namespace StationScience
             // Log the transition for debugging and record-keeping.
             Debug.Log($"Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
 
-            // Additional actions or notifications can be added here if needed.
+            // Temporarily take the vessel "off rails".
+            // This is often done to ensure that changes to the vessel's state or status are processed correctly.
+            vessel.GoOffRails();
+
+            // Return the vessel "on rails" to refresh the UI.
+            // This ensures that the vessel's state is updated in the game's UI after being taken off rails.
+            vessel.GoOnRails();
         }
 
-        //This acts as a shortcut method to making pop-up messages on screen
-        protected static void PopUpMessage(string message) 
+        // Define the new method to calculate the requirement "kuarq" decay
+        public void UpdateKuarqDecay()
+        {
+            // Check if requirements contain "KUARQS"
+            bool hasKuarqs = requirements.ContainsKey(KUARQS);
+
+            if (hasKuarqs)
+            {
+                // Update the visibility of kuarqDecay
+                Fields[nameof(kuarqDecay)].guiActive = true;
+
+                // Perform decay calculation if halflife is greater than 0
+                if (kuarqHalflife > 0)
+                {
+                    var kuarqs = GetResource(KUARQS);
+                    float kuarqsRequired = requirements[KUARQS].Amount;
+
+                    // If the Kuarqs amount is equal or less than 99% of the required amount, continue decay calculations
+                    if (kuarqs != null && kuarqs.amount <= (.99 * kuarqsRequired))
+                    {
+                        // Calculate decay
+                        double decay = Math.Pow(.5, TimeWarp.fixedDeltaTime / kuarqHalflife);
+                        kuarqDecay = (float)((kuarqs.amount * (1 - decay)) / TimeWarp.fixedDeltaTime) * 0.1f;
+                        kuarqs.amount = kuarqs.amount * decay;
+                    }
+                    else
+                    {
+                        // If the requirement is met, hide the kuarqDecay field
+                        Fields[nameof(kuarqDecay)].guiActive = false;
+                        kuarqDecay = 0;
+                    }
+                }
+                else
+                {
+                    kuarqDecay = 0;
+                }
+            }
+            else
+            {
+                // Hide the kuarqDecay field if requirements do not contain "KUARQS"
+                Fields[nameof(kuarqDecay)].guiActive = false;
+                kuarqDecay = 0;
+            }
+        }
+
+        //This acts as a shortcut method to making pop-up messages on screen.
+        protected static void PopUpMessage(string message)
         {
             ScreenMessages.PostScreenMessage(message, 6, ScreenMessageStyle.UPPER_CENTER);
         }
 
+        // Method to check if the required parts are present on the vessel
+        private bool CheckRequiredParts()
+        {
+            // Assuming requiredParts is a class-level or accessible field
+            if (string.IsNullOrEmpty(requiredParts))
+                return true;
 
+            // Split the requiredParts string into individual part names
+            var partNames = requiredParts.Split(',').Select(name => name.Trim()).ToHashSet();
+
+            // Get a HashSet of part names currently on the vessel
+            var partsOnVessel = vessel.parts.Select(p => p.partInfo.title).ToHashSet();
+
+            // Check if all required parts are present
+            foreach (var requiredPart in partNames)
+            {
+                if (!partsOnVessel.Contains(requiredPart))
+                {
+                    // Notify the player and return false if any required part is missing
+                    ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_StatSci_screen_missing_part", requiredPart), 6, ScreenMessageStyle.UPPER_CENTER);
+                    return false;
+                }
+            }
+
+            // All required parts are present
+            return true;
+        }
+
+
+        // Generates a formatted string containing information about the requirements,
+        // including additional details about specific requirements like KUARQS and BIOPRODUCTS to be placed in the part menu in the VAB or SPH.
+        public string GenerateRequirementInfo(Dictionary<string, Requirement> requirements, double kuarqHalflife, double partMass)
+        {
+            // Initialize the return string and placeholders for additional requirement details
+            string ret = "";
+            string reqLab = "", reqCyclo = "", reqZoo = "", reqSol = "";
+
+            // Check if the required parts are present on the vessel
+            if (!CheckRequiredParts())
+            {
+                // If required parts are missing, return a message indicating this
+                return Localizer.Format("#autoLOC_StatSci_screen_missing_parts");
+            }
+
+            // Iterate over each requirement in the dictionary
+            foreach (var r in requirements)
+            {
+                // If ret is not empty, append a new line to separate entries
+                if (ret != "") ret += "\n";
+
+                // Append the requirement name and amount to the return string
+                ret += r.Value.Name + " " + Localizer.Format("#autoLOC_StatSci_Req", r.Value.Amount);
+
+                // Debug output to ensure switch statement is entered
+                Debug.Log($"Processing Requirement: {r.Value.Name}");
+
+                // Handle special requirements that need additional information or formatting
+                switch (r.Value.Name)
+                {
+                    case "Eurekas":
+                        // For EUREKAS, specify the lab requirement
+                        reqLab = Localizer.Format("#autoLOC_StatSci_LabReq");
+                        break;
+
+                    case "Kuarqs":
+                        // For KUARQS, generate and append specific info including cyclical requirements
+                        ret += GenerateKuarqsInfo(r.Value.Amount, kuarqHalflife, ref reqCyclo);
+                        break;
+
+                    case "Bioproducts":
+                        // For BIOPRODUCTS, generate and append specific info including zoo requirements
+                        ret += GenerateBioproductsInfo(r.Value.Amount, partMass, ref reqZoo);
+                        break;
+
+                    case "Solutions":
+                        // For SOLUTIONS, specify the lab requirement
+                        reqSol = Localizer.Format("#autoLOC_StatSci_SolReq");
+                        break;
+
+                    default:
+                        Debug.Log($"Unhandled Requirement: {r.Value.Name}");
+                        break;
+                }
+            }
+
+            // Return the full requirement info, including any additional details appended from specific requirements
+            string finalResult = ret + reqLab + reqCyclo + reqZoo + reqSol + "\n\n";
+            Debug.Log($"Final Result: {finalResult}");
+            return finalResult;
+        }
+
+        // Generates specific information related to KUARQS, including their half-life and the 
+        // required production, and updates the Cyclotron requirement reference.
+        private string GenerateKuarqsInfo(double kuarqsAmount, double kuarqHalflife, ref string reqCyclo)
+        {
+            string result = "";
+            double productionRequired = 0.01; // Default value for production requirement
+
+            // If the half-life of KUARQS is greater than 0, calculate the required production
+            if (kuarqHalflife > 0)
+            {
+                result += "\n" + Localizer.Format("#autoLOC_StatSci_KuarkHalf", kuarqHalflife);
+
+                // Calculate the production required based on the half-life formula
+                productionRequired = kuarqsAmount * (1 - Math.Pow(0.5, 1.0 / kuarqHalflife));
+                result += "\n" + Localizer.Format("#autoLOC_StatSci_KuarkProd", productionRequired.ToString("F3"));
+            }
+
+            // Determine the Cyclotron requirement based on the calculated production
+            reqCyclo = productionRequired > 1
+                ? Localizer.Format("#autoLOC_StatSci_CycReqM", Math.Ceiling(productionRequired))
+                : Localizer.Format("#autoLOC_StatSci_CycReq");
+
+            return result; // Return the generated KUARQS info
+        }
+
+        // Generates specific information related to BIOPRODUCTS, including their total mass,
+        // and updates the Zoology Bay requirement reference.
+        private string GenerateBioproductsInfo(double bioproductsAmount, double partMass, ref string reqZoo)
+        {
+            string result = "";
+
+            // Retrieve the density of BIOPRODUCTS from a resource helper
+            double bioproductDensity = ResourceHelper.getResourceDensity("BIOPRODUCTS");
+
+            // If the density is valid, calculate the total biomass
+            if (bioproductDensity > 0)
+            {
+                double bioMass = Math.Round(bioproductsAmount * bioproductDensity + partMass, 2);
+                result += Localizer.Format("#autoLOC_StatSci_BioMass", bioMass);
+            }
+
+            // Set the zoo requirement string
+            reqZoo = Localizer.Format("#autoLOC_StatSci_ZooReq");
+            return result; // Return the generated BIOPRODUCTS info
+        }
     }
 }
