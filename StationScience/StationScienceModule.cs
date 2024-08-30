@@ -278,7 +278,7 @@ namespace StationScience
 
         }
 
-            // Updates the lights mode display in the part's right-click menu
+        // Updates the lights mode display in the part's right-click menu
         private void UpdateLightsMode()
         {
             // Set the display name of the lights mode event based on the current lightsMode setting
@@ -353,7 +353,7 @@ namespace StationScience
                 researchStatus = currentBaseStatus;
 
                 // Optionally update the guiName or any other dynamic property
-                Fields["customStatus"].guiName = $"{currentBaseStatus} Status";
+                Fields["researchStatus"].guiName = $"{ConverterName}";
 
                 // Update the last status tracking
                 lastStatus = currentBaseStatus;
