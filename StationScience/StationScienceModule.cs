@@ -17,95 +17,100 @@
 
 using KSP.Localization;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace StationScience
 {
-    // This module represents a science module for a space station.
-    // It handles skill checks, efficiency bonuses, and lights animation.
     public class StationScienceModule : ModuleResourceConverter
     {
-        // Determines the mode of the lights: 0 = off, 1 = auto, 2 = on
+        // Your custom status field
+        [KSPField(guiActive = true, guiActiveEditor = false, guiName = "researchStatus", groupName = "StationScience", groupDisplayName = "Research")]
+        public string researchStatus = "Inactive";
+
+        // Field to manage the lights mode: 0 = off, 1 = auto, 2 = on
         [KSPField(isPersistant = true)]
         public int lightsMode = 1;
 
-        // Required skills for the module to function properly
+        // Field to specify the required skills for the module to function properly
         [KSPField]
-        public string requiredSkills = "NA";
+        public string requiredSkills = "NA"; // Skills required for the module to function properly
 
-        // Skills parsed from the requiredSkills string
-        public IEnumerable<string> skills;
-
-        // Bonus multiplier for experience
+        // Field for experience bonus multiplier
         [KSPField]
         public double experienceBonus = 0.5;
 
-        // Time of the last skill check
-        private float lastCheck = 0;
+        private float lastCheck = 0; // Last time the skill check was performed
+        private bool actuallyProducing = false; // Whether the module is actively producing resources
+        //private ConversionRecipe lastRecipe = null; // Last conversion recipe used
+        private ModuleAnimateGeneric animator = null; // Animation module for controlling lights
+        public IEnumerable<string> skills; // Parsed skills from the requiredSkills string
+        private string lastStatus = string.Empty;  // Track the last status to avoid unnecessary updates
 
-        // Flag to determine if the module is actively producing resources
-        private bool actuallyProducing = false;
+        /*
+        // Fields for Kibbal-to-Bioproduct conversion
+        [KSPField(isPersistant = true)]
+        public float kibbalConsumptionRate = 1.0f; // Base rate at which Kibbal is consumed
 
-        // Last recipe used for conversion
-        private ConversionRecipe lastRecipe = null;
+        [KSPField(isPersistant = true)]
+        public float bioproductConversionRate = 0.5f; // Conversion rate from Kibbal to Bioproducts
 
-        // Animator module for controlling lights
-        private ModuleAnimateGeneric animator = null;
+        // Field to track the status of Kibbal consumption increase
+        //[KSPField(guiActive = true, guiName = "Kibbal Consumption Status", groupName = "StationScience", groupDisplayName = "Research", groupStartCollapsed = false)]
+        //public string kibbalConsumptionStatus = "Normal"; // Default status is "Normal"
+        */
 
-        // Checks if the crew has the required skills.
-        // Returns true if at least one crew member has the required skills, otherwise false.
+        // Checks if the crew has the required skills to operate the module
         public bool CheckSkill()
         {
             // If no specific skills are required, return true
             if (string.IsNullOrEmpty(requiredSkills) || requiredSkills == "NA")
                 return true;
 
-            // Parse skills if not already parsed
+            // Parse skills if not already done
             if (skills == null)
             {
                 skills = requiredSkills.Split(',').Select(s => s.Trim());
             }
 
-            // Check each crew member for required skills
+            // Check if any crew member has the required skill
             foreach (var crew in part.protoModuleCrew)
             {
                 if (skills.Any(skill => crew.HasEffect(skill)))
-                    return true;
+                    return true; // Found a crew member with the required skill
             }
-            return false;
+            return false; // No crew member has the required skill
         }
 
-        // Pre-processes the module before conversion.
+        // Pre-processing logic before resource conversion takes place
         protected override void PreProcessing()
         {
+            // Perform skill check periodically to avoid constant checks
             float curTime = UnityEngine.Time.realtimeSinceStartup;
-
-            // Only check skills periodically to avoid constant checking
-            if (IsActivated && (curTime - lastCheck > 0.1))
+            if (IsActivated && (curTime - lastCheck > 0.1f))
             {
                 lastCheck = curTime;
 
-                // Check if the module should be active based on crew skills and other conditions
+                // If the crew doesn't have the required skills, stop the converter
                 if (!CheckSkill())
                 {
-                    // Stop the conversion if the required skills are not present
                     StopResourceConverter();
                     this.status = "Inactive; no " + requiredSkills;
                 }
+                // If the vessel is on the home planet, stop the converter
                 else if (StationExperiment.CheckBoring(vessel, false))
                 {
-                    // Stop the conversion if the vessel is on the home planet (e.g., Kerbin)
                     StopResourceConverter();
                     this.status = "Inactive; on home planet";
                 }
                 else
                 {
-                    // Calculate efficiency bonus based on crew skills and experience
+                    // Calculate efficiency bonus based on crew's science skills and experience levels
                     int numScienceCrew = 0;
                     int totalExperience = 0;
 
-                    // Iterate through the crew members to count those with the required skills
                     foreach (var crew in part.protoModuleCrew)
                     {
                         foreach (var skill in skills)
@@ -117,29 +122,86 @@ namespace StationScience
                             }
                         }
                     }
-                    // Set the efficiency bonus based on the number of skilled crew and their experience
-                    SetEfficiencyBonus((float)Math.Max(numScienceCrew + totalExperience * experienceBonus, 1.0));
+
+                    // Set the efficiency bonus based on the number of skilled crew members and their experience
+                    SetEfficiencyBonus((float)Math.Max(numScienceCrew + totalExperience * experienceBonus, 1.0f));
                 }
             }
-            // Call the base class's PreProcessing method to ensure standard behavior
+
+            // Call base class to handle standard pre-processing tasks
             base.PreProcessing();
         }
 
-        // Updates the lights based on the current lights mode and activation state.
+        /*
+        // Prepare the conversion recipe for Kibbal to Bioproducts conversion
+        protected override ConversionRecipe PrepareRecipe(double deltaTime)
+        {
+            var recipe = new ConversionRecipe();
+
+            // Add Kibbal consumption and Bioproduct production to the recipe
+            recipe.Inputs.Add(new ResourceRatio { ResourceName = "Kibbal", Ratio = kibbalConsumptionRate, FlowMode = ResourceFlowMode.ALL_VESSEL });
+            recipe.Outputs.Add(new ResourceRatio { ResourceName = "Bioproducts", Ratio = kibbalConsumptionRate * bioproductConversionRate, FlowMode = ResourceFlowMode.ALL_VESSEL });
+
+            // Call the base class's PrepareRecipe to handle any other resource conversions
+            lastRecipe = base.PrepareRecipe(deltaTime);
+
+            return recipe; // Return the prepared recipe
+        }
+        */
+
+        // Post-processing after resource conversion is done
+        protected override void PostProcess(ConverterResults result, double deltaTime)
+        {
+            // Call the base class's PostProcess to handle standard post-processing tasks
+            base.PostProcess(result, deltaTime);
+
+            // Determine if the module is actually producing resources based on the result
+            actuallyProducing = (result.TimeFactor > 0);
+
+            // Update lights automatically if the lights mode is set to "auto"
+            if (lightsMode == 1)
+                UpdateLights();
+        }
+
+        /*
+        // Button to increase the Kibbal consumption rate and Bioproduct conversion rate
+        [KSPEvent(guiName = "Increase Kibbal Consumption", active = true, guiActive = true)]
+        public void IncreaseKibbalConsumption()
+        {
+            // Ensure this action only happens when the part is the "StnSciZoo"
+            if (this.part.name == "StnSciZoo")
+            {
+                kibbalConsumptionRate = 1.0f; // Set to normal consumption rate
+                bioproductConversionRate = 0.5f; // Set to normal conversion rate
+
+                // Update the status field
+                kibbalConsumptionStatus = "Normal"; // Change status to "Normal"
+            }
+            else
+            {
+                kibbalConsumptionRate += 0.5f; // Increase Kibbal consumption rate
+                bioproductConversionRate += 0.25f; // Increase Bioproduct conversion rate
+
+                kibbalConsumptionStatus = "Increased"; // Change status to "Increased"
+            }
+        }
+        */
+
+        // Updates the lights based on the current state of production and lights mode
         private void UpdateLights()
         {
             if (animator != null)
             {
-                // Determine if the lights should be active based on the lights mode and production state
+                // Determine if the lights should be active based on lights mode and production status
                 bool animActive = this.IsActivated && actuallyProducing;
                 animActive = lightsMode switch
                 {
-                    2 => true,  // Force on
-                    0 => false, // Force off
-                    _ => animActive // Auto mode
+                    2 => true,  // Lights always on
+                    0 => false, // Lights always off
+                    _ => animActive // Auto mode: lights based on production
                 };
 
-                // Toggle the light animation based on the active state
+                // Toggle lights on or off based on the current animation state
                 if (animActive && animator.Progress == 0 && animator.status.StartsWith("Locked", StringComparison.OrdinalIgnoreCase))
                 {
                     animator.allowManualControl = true;
@@ -155,62 +217,71 @@ namespace StationScience
             }
         }
 
-        // Prepares the recipe for conversion.
-        // Returns the prepared conversion recipe.
-        protected override ConversionRecipe PrepareRecipe(double deltaTime)
-        {
-            // Call the base class's method to prepare the conversion recipe
-            lastRecipe = base.PrepareRecipe(deltaTime);
-            return lastRecipe;
-        }
-
-        // Post-processes the results of the conversion.
-        protected override void PostProcess(ConverterResults result, double deltaTime)
-        {
-            // Call the base class's PostProcess method to handle the conversion result
-            base.PostProcess(result, deltaTime);
-
-            // Update the actuallyProducing flag based on the conversion result
-            actuallyProducing = (result.TimeFactor > 0);
-
-            // Update the lights if the mode is set to automatic
-            if (lightsMode == 1)
-                UpdateLights();
-        }
-
-        // Called when the module is started.
+        // Called when the module is started (in the game)
         public override void OnStart(StartState state)
         {
-            // Call the base class's OnStart method to handle initial setup
             base.OnStart(state);
 
-            // If the module is started in the editor, exit the method early
+            // Don't do anything if we're in the editor
             if (state == StartState.Editor)
                 return;
 
-            // Force activate the part so it starts processing resources immediately
+            // Force the part to activate and start processing resources immediately
             this.part.force_activate();
 
-            // Find and configure the animator module for controlling lights
+            // Find the existing ModuleOverheatDisplay instance
+            overheatDisplay = this.part.FindModuleImplementing<ModuleOverheatDisplay>();
+            if (overheatDisplay != null)
+            {
+                // Modify the overheatDisplay fields here
+                UpdateHeatDisplayFields();
+            }
+
+            // Find the animator module and disable manual control
             animator = this.part.FindModulesImplementing<ModuleAnimateGeneric>().FirstOrDefault();
             if (animator != null)
             {
-                // Disable the manual control of the animator through the GUI
                 foreach (var field in animator.Fields)
                 {
                     if (field != null)
-                        field.guiActive = false;
+                        field.guiActive = false; // Hide animator fields
                 }
             }
 
-            // Update the lights mode based on the current setting
+            // Update the lights mode to reflect the current setting
             UpdateLightsMode();
+
+            // Copy the value of the base class's status field to the custom status field
+            BaseField baseStatusField = Fields["status"];  // Access the base class's field
+            researchStatus = baseStatusField.GetValue(this).ToString();  // Copy its value to the custom status field
+
+            // Access the ConverterName and dynamically set the guiName
+            if (!string.IsNullOrEmpty(ConverterName))
+            {
+                Fields["researchStatus"].guiName = $"{ConverterName}";
+            }
+
+            // Hide the base class's status field in PAW
+            baseStatusField.guiActive = false;
+            baseStatusField.guiActiveEditor = false;
+
+            // Optionally log the value to verify the copy
+            Debug.Log($"Copied status from base class: {researchStatus}");
+
         }
 
-        // Updates the lights mode based on the current setting.
+        public override void OnUpdate()
+        {
+
+            // Continuously update the custom status field based on the base class status
+            UpdateCustomStatus();
+
+        }
+
+            // Updates the lights mode display in the part's right-click menu
         private void UpdateLightsMode()
         {
-            // Set the name of the lights mode based on the current setting
+            // Set the display name of the lights mode event based on the current lightsMode setting
             string lightsModeName = lightsMode switch
             {
                 0 => Localizer.Format("#autoLOC_StatSci_LightsOff"),   // Lights off
@@ -219,33 +290,75 @@ namespace StationScience
                 _ => Localizer.Format("#autoLOC_StatSci_LightsAuto")   // Default to automatic
             };
 
-            // Update the GUI name for the LightsMode event to reflect the current setting
+            // Update the right-click menu display
             Events["LightsMode"].guiName = lightsModeName;
-            UpdateLights();
+            UpdateLights(); // Apply the current lights mode
         }
 
-        // Toggles the lights mode between off, auto, and on.
+        // Event to change the lights mode between off, auto, and on
         [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_LightsAuto", active = true)]
         public void LightsMode()
         {
-            // Cycle through the lights mode (off, auto, on)
-            lightsMode = (lightsMode + 1) % 3;
-            UpdateLightsMode();
+                lightsMode = (lightsMode + 1) % 3; // Cycle through 0, 1, 2
+                UpdateLightsMode(); // Update the lights mode display
         }
 
-        // Provides information about the module.
-        // Returns a string describing the module's functionality.
+        // Provides additional information about the module in the part's right-click menu
         public override string GetInfo()
         {
-            // Get the basic info from the base class
             string info = base.GetInfo();
 
-            // Add information about the required skills if applicable
+            // Append the required skills to the info if applicable
             if (!string.IsNullOrEmpty(requiredSkills) && requiredSkills != "NA")
             {
                 info += Localizer.Format("#autoLOC_StatSci_skillReq", requiredSkills);
             }
+
             return info;
+        }
+
+        private ModuleOverheatDisplay overheatDisplay; // Correct declaration
+
+        public void UpdateHeatDisplayFields()
+        {
+
+                // Check and modify field visibility
+                if (overheatDisplay != null)
+                {
+                    var fieldNamesToHide = new[] { "heatDisplay", "coreTempDisplay" }; // Replace with actual field names
+
+                    foreach (var field in overheatDisplay.Fields)
+                    {
+                        if (fieldNamesToHide.Contains(field.name))
+                        {
+                            field.guiActive = false; // Ensure the field remains hidden
+                        }
+                    }
+                }
+
+        }
+
+        private void UpdateCustomStatus()
+        {
+            // Access the base class's status field
+            BaseField baseStatusField = Fields["status"];
+
+            // Get the current value of the base status
+            string currentBaseStatus = baseStatusField.GetValue(this).ToString();
+
+            // Only update if the status has changed to avoid unnecessary updates
+            if (currentBaseStatus != lastStatus)
+            {
+                // Update the custom status field with the base class's status
+                researchStatus = currentBaseStatus;
+
+                // Optionally update the guiName or any other dynamic property
+                Fields["customStatus"].guiName = $"{currentBaseStatus} Status";
+
+                // Update the last status tracking
+                lastStatus = currentBaseStatus;
+            }
         }
     }
 }
+                                                                                                

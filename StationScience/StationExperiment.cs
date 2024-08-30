@@ -22,7 +22,6 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using System.Collections;
-using KSP_Log;
 using System.Diagnostics.Eventing.Reader;
 
 namespace StationScience
@@ -362,7 +361,7 @@ namespace StationScience
 
         }
 
-        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_startExp", active = true, groupName = "StationScience", groupDisplayName = "Experiment")]
+        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_startExp", active = true)]
         public void StartExperiment()
         {
             if (currentStatus != Status.Idle)
