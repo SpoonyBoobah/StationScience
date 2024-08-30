@@ -235,3 +235,4 @@ $RECYCLE.BIN/
 .vs
 GameData/StationScience/_gsdata_/_file_state_v4._gs
 GameData/StationScience/_gsdata_/_insync_v4.gsl
+/StationScience/FieldInfo.cs
