@@ -20,7 +20,7 @@ namespace StationScience
                     fieldActiveStatus[bf] = (null, bf.guiActive);
 
                     // Log the initial state of the fields
-                    Debug.Log($"[INITIAL] Part: {part.name}, Field Name: {bf.name}, GUI Name: {bf.guiName}, Value: {bf.GetValue(bf.host)}, Active: {bf.guiActive}");
+                    Debug.Log($"[STNSCI-DBUG-INITIAL] Part: {part.name}, Field Name: {bf.name}, GUI Name: {bf.guiName}, Value: {bf.GetValue(bf.host)}, Active: {bf.guiActive}");
                 }
             }
 
@@ -37,7 +37,7 @@ namespace StationScience
                             fieldActiveStatus[bf] = (pm, bf.guiActive);
 
                             // Log the initial state of the module fields
-                            Debug.Log($"[INITIAL] Module: {pm.moduleName}, Part: {part.name}, Field Name: {bf.name}, GUI Name: {bf.guiName}, Value: {bf.GetValue(bf.host)}, Active: {bf.guiActive}");
+                            Debug.Log($"[STNSCI-DBUG-INITIAL] Module: {pm.moduleName}, Part: {part.name}, Field Name: {bf.name}, GUI Name: {bf.guiName}, Value: {bf.GetValue(bf.host)}, Active: {bf.guiActive}");
                         }
                     }
                 }
@@ -60,7 +60,7 @@ namespace StationScience
                     if (currentActiveStatus != previousActiveStatus)
                     {
                         var moduleInfo = status.module != null ? $"Module: {status.module.moduleName}" : "Part";
-                        Debug.Log($"[STATUS CHANGE] {moduleInfo}, Part: {part.name}, Field Name: {field.name}, GUI Name: {field.guiName}, New Active Status: {currentActiveStatus}");
+                        Debug.Log($"[STNSCI-DBUG-CHANGE] {moduleInfo}, Part: {part.name}, Field Name: {field.name}, GUI Name: {field.guiName}, New Active Status: {currentActiveStatus}");
 
                         // Update the stored active status
                         fieldActiveStatus[field] = (status.module, currentActiveStatus);

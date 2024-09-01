@@ -266,7 +266,7 @@ namespace StationScience
             baseStatusField.guiActiveEditor = false;
 
             // Optionally log the value to verify the copy
-            Debug.Log($"Copied status from base class: {researchStatus}");
+            Debug.Log($"[STNSCI-MOD] Copied status from base class: {researchStatus}");
 
         }
 
