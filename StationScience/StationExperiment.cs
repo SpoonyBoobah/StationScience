@@ -92,7 +92,7 @@ namespace StationScience
         // Method to check if the vessel is in a "boring" location for experiments
         public static bool CheckBoring(Vessel vessel, bool msg = false)
         {
-            //Debug.Log($"{vessel.Landed}, {vessel.landedAt}, {vessel.launchTime}, {vessel.situation}, {vessel.orbit.referenceBody.name}"); //DISABLED due to log spam!
+            //Debug.Log($"[STNSCI-EXP] {vessel.Landed}, {vessel.landedAt}, {vessel.launchTime}, {vessel.situation}, {vessel.orbit.referenceBody.name}"); //DISABLED due to log spam!
             if (vessel.orbit.referenceBody == FlightGlobals.GetHomeBody() &&
                 (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH ||
                 vessel.situation == Vessel.Situations.SPLASHED || vessel.altitude <= vessel.orbit.referenceBody.atmosphereDepth))
@@ -288,7 +288,7 @@ namespace StationScience
                 // If either is null, log an error and revert the experiment status to 'Idle'.
                 if (r.Value?.Name == null)
                 {
-                    Debug.Log($"{part.partInfo.title} ERROR! required resource is null in Running");
+                    Debug.Log($"[STNSCI-EXP] {part.partInfo.title} ERROR! required resource is null in Running");
                     SetStatus(Status.Idle); // Use SetStatus to properly handle state transitions.
                     return false; // Return false as the experiment cannot run without valid resources.
                 }
@@ -298,7 +298,7 @@ namespace StationScience
                 // Round the amount down to 2 decimal places.
                 double roundedAmount = Math.Floor(amount * 100) / 100;
                 // Log the current amount and required amount for debugging purposes.
-                //Debug.Log($"{part.partInfo.title} {r.Value.Name}: {roundedAmount:F2}/{r.Value.Amount:F1}"); //Disabled as only for debugging purposes!
+                //Debug.Log($"[STNSCI-EXP] {part.partInfo.title} {r.Value.Name}: {roundedAmount:F2}/{r.Value.Amount:F1}"); //Disabled as only for debugging purposes!
 
 
                 // Check if the available amount of the resource is less than the required amount.
@@ -347,9 +347,8 @@ namespace StationScience
             if (scienceCount > 0) //If there is any ScienceReports stored...
             {
 
-                //SetStatus(Status.Storage); //Then set the Status of the experiment to Storage
                 Events[nameof(StartExperiment)].active = false;
-                //Events[nameof(DeployExperiment)].active = false;
+
             }
             else // If no ScienceReports are stored (scienceCount is 0 or null)
             {
@@ -366,13 +365,13 @@ namespace StationScience
         {
             if (currentStatus != Status.Idle)
             {
-                Debug.Log($"Cannot Start Experiment because we are not idle currentStatus = {currentStatus}"); //This should'nt ever happen, its just in case there is an error in the code which is showing the StartExp button in wrong state.
+                Debug.Log($"[STNSCI-EXP] Cannot Start Experiment because we are not idle currentStatus = {currentStatus}"); //This should'nt ever happen, its just in case there is an error in the code which is showing the StartExp button in wrong state.
                 return;
             }
 
             if (CheckBoring(vessel, true)) // Check if the experiment is boring; if it is, remain idle (return false) and disable the Start Experiment button.
             {
-                Debug.Log("Cannot start Experiment here!");
+                Debug.Log("[STNSCI-EXP] Cannot start Experiment here!");
                 return;
 
             }
@@ -414,7 +413,7 @@ namespace StationScience
         private void OnIdleExit()
         {
             // Log the transition for debugging purposes
-            Debug.Log($"Exiting Idle state for {part.partInfo.title}");
+            Debug.Log($"[STNSCI-EXP] Exiting Idle state for {part.partInfo.title}");
 
             PopUpMessage("#autoLOC_StatSci_screen_started"); // Pop-up message "Started experiment!"
 
@@ -443,14 +442,14 @@ namespace StationScience
             foreach (var r in requirements)
             {
                 // Debug line to output information about the current requirement.
-                //Debug.Log($"Processing requirement: Resource Name = {r.Value.Name}, Amount = {r.Value.Amount}");
+                //Debug.Log($"[STNSCI-EXP] Processing requirement: Resource Name = {r.Value.Name}, Amount = {r.Value.Amount}");
 
                 // Set or update the maximum amount of the specified resource for each requirement.
                 // The resource is identified by its name, and the maximum amount is set as specified.
                 var resource = SetResourceMaxAmount(r.Value.Name, r.Value.Amount);
 
                 // Debug line to confirm the resource has been updated.
-                //Debug.Log($"Resource '{r.Value.Name}' max amount set to {r.Value.Amount}");
+                //Debug.Log($"[STNSCI-EXP] Resource '{r.Value.Name}' max amount set to {r.Value.Amount}");
 
             }
         }
@@ -460,7 +459,7 @@ namespace StationScience
             // Ensure the experiment is in a valid state before transitioning to Storage.
             if (currentStatus == Status.Storage)
             {
-                Debug.Log("Experiment is already in Storage status.");
+                Debug.Log("[STNSCI-EXP] Experiment is already in Storage status.");
                 return; // No action needed if already in Storage.
             }
 
@@ -481,7 +480,7 @@ namespace StationScience
             RemoveAllReqs();
 
             // Log the transition for debugging and record-keeping.
-            //Debug.Log($"Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
+            //Debug.Log($"[STNSCI-EXP] Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
 
             // Temporarily take the vessel "off rails".
             // This is often done to ensure that changes to the vessel's state or status are processed correctly.
@@ -597,7 +596,7 @@ namespace StationScience
                 ret += r.Value.Name + " " + Localizer.Format("#autoLOC_StatSci_Req", r.Value.Amount);
 
                 // Debug output to ensure switch statement is entered
-                Debug.Log($"Processing Requirement: {r.Value.Name}");
+                Debug.Log($"[STNSCI-EXP] Processing Requirement: {r.Value.Name}");
 
                 // Handle special requirements that need additional information or formatting
                 switch (r.Value.Name)
@@ -623,14 +622,14 @@ namespace StationScience
                         break;
 
                     default:
-                        Debug.Log($"Unhandled Requirement: {r.Value.Name}");
+                        Debug.Log($"[STNSCI-EXP] Unhandled Requirement: {r.Value.Name}");
                         break;
                 }
             }
 
             // Return the full requirement info, including any additional details appended from specific requirements
             string finalResult = ret + reqLab + reqCyclo + reqZoo + reqSol + "\n\n";
-            Debug.Log($"Final Result: {finalResult}");
+            Debug.Log($"[STNSCI-EXP] Final Result: {finalResult}");
             return finalResult;
         }
 
