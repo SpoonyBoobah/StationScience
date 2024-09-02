@@ -511,7 +511,7 @@ namespace StationScience
                         // Calculate decay
                         double decay = Math.Pow(.5, TimeWarp.fixedDeltaTime / kuarqHalflife);
                         kuarqDecay = (float)((kuarqs.amount * (1 - decay)) / TimeWarp.fixedDeltaTime) * 0.1f;
-                        kuarqs.amount = kuarqs.amount * decay;
+                        kuarqs.amount *= decay;
                     }
                     else
                     {
