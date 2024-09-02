@@ -445,7 +445,7 @@ namespace StationScience
 
                 // Set or update the maximum amount of the specified resource for each requirement.
                 // The resource is identified by its name, and the maximum amount is set as specified.
-                var resource = SetResourceMaxAmount(r.Value.Name, r.Value.Amount);
+                SetResourceMaxAmount(r.Value.Name, r.Value.Amount);
 
                 // Debug line to confirm the resource has been updated.
                 //Debug.Log($"[STNSCI-EXP] Resource '{r.Value.Name}' max amount set to {r.Value.Amount}");

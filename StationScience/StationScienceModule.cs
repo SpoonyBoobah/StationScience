@@ -98,39 +98,48 @@ namespace StationScience
                 {
                     StopResourceConverter();
                     this.status = "Inactive; no " + requiredSkills;
+                    return; // Exit early if skill check fails
                 }
+
                 // If the vessel is on the home planet, stop the converter
-                else if (StationExperiment.CheckBoring(vessel, false))
+                if (StationExperiment.CheckBoring(vessel, false))
                 {
                     StopResourceConverter();
                     this.status = "Inactive; on home planet";
+                    return; // Exit early if on home planet
                 }
-                else
-                {
-                    // Calculate efficiency bonus based on crew's science skills and experience levels
-                    int numScienceCrew = 0;
-                    int totalExperience = 0;
 
-                    foreach (var crew in part.protoModuleCrew)
+                // New functionality: Check if there is available storage for output resources
+                if (!CheckOutputResourceStorage())
+                {
+                    StopResourceConverter();
+                    return; // Exit early if no storage for output resources is available
+                }
+
+                // Calculate efficiency bonus based on crew's science skills and experience levels
+                int numScienceCrew = 0;
+                int totalExperience = 0;
+
+                foreach (var crew in part.protoModuleCrew)
+                {
+                    foreach (var skill in skills)
                     {
-                        foreach (var skill in skills)
+                        if (crew.HasEffect(skill))
                         {
-                            if (crew.HasEffect(skill))
-                            {
-                                numScienceCrew += 1;
-                                totalExperience += crew.experienceLevel;
-                            }
+                            numScienceCrew += 1;
+                            totalExperience += crew.experienceLevel;
                         }
                     }
-
-                    // Set the efficiency bonus based on the number of skilled crew members and their experience
-                    SetEfficiencyBonus((float)Math.Max(numScienceCrew + totalExperience * experienceBonus, 1.0f));
                 }
+
+                // Set the efficiency bonus based on the number of skilled crew members and their experience
+                SetEfficiencyBonus((float)Math.Max(numScienceCrew + totalExperience * experienceBonus, 1.0f));
             }
 
             // Call base class to handle standard pre-processing tasks
             base.PreProcessing();
         }
+
 
         /*
         // Prepare the conversion recipe for Kibbal to Bioproducts conversion
@@ -356,7 +365,7 @@ namespace StationScience
             // Check if the base status value is null
             if (baseStatusValue == null)
             {
-                Debug.LogError("[STNSCI-MOD] Error: 'status' field value is null.");
+                //Debug.LogError("[STNSCI-MOD] Error: 'status' field value is null.");
                 return; // Exit the method if the value is null
             }
 
@@ -374,6 +383,59 @@ namespace StationScience
                 // Update the last status tracking
                 lastStatus = currentBaseStatus;
             }
+        }
+
+        // Check if there is available storage space for the output resource on the vessel
+        public bool CheckOutputResourceStorage()
+        {
+            // Get the output resources from the conversion recipe
+            var recipe = GetCurrentRecipe();
+            if (recipe == null || recipe.Outputs.Count == 0)
+            {
+                Debug.LogError("[STNSCI-MOD] Error: No output resources found in the recipe.");
+                return true;  // If no output resources, we can continue running
+            }
+
+            foreach (var output in recipe.Outputs)
+            {
+                // Get the resource definition based on the resource name
+                var resourceDef = PartResourceLibrary.Instance.GetDefinition(output.ResourceName);
+                if (resourceDef == null)
+                {
+                    Debug.LogError($"[STNSCI-MOD] Error: Resource '{output.ResourceName}' not found.");
+                    continue;
+                }
+
+                // Check all parts in the vessel for storage capacity for this resource
+                double totalAvailableStorage = 0.0;
+                double totalMaxStorage = 0.0;
+
+                // Get the connected resource totals for this resource
+                part.GetConnectedResourceTotals(resourceDef.id, out totalAvailableStorage, out totalMaxStorage);
+
+                // Log details for debugging
+                //Debug.Log($"[STNSCI-MOD] Checking storage for {output.ResourceName}: available = {totalAvailableStorage}, max = {totalMaxStorage}");
+
+                // Check if there is any max storage for this resource (null check included for safety)
+                if (totalMaxStorage <= 0 || totalMaxStorage == double.NaN)
+                {
+                    this.status = $"Inactive; no storage for {output.ResourceName}";
+                    Debug.Log($"[STNSCI-MOD] No storage for {output.ResourceName}, stopping converter.");
+                    return false;  // Stop the converter if no storage exists or if the value is unexpected
+                }
+
+                // Skip checking if storage is full, we only care that storage exists
+                // If max storage exists, we don't care about available storage
+            }
+
+            return true;  // Storage is available for all output resources
+        }
+
+        // Get the current recipe for this converter
+        protected ConversionRecipe GetCurrentRecipe()
+        {
+            // This returns the current recipe; override if you have a custom recipe mechanism
+            return base.PrepareRecipe(0);
         }
 
     }
