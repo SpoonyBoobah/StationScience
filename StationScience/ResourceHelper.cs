@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace StationScience
 {
@@ -53,6 +54,14 @@ namespace StationScience
             PartResource res = getResource(part, name);
             if (res == null && max > 0)
             {
+                var resDef = PartResourceLibrary.Instance.resourceDefinitions[name];
+                if (resDef == null)
+                {
+                    // Log an error message if resource definition is not found
+                    Debug.LogError($"[STNSCI-RES] Error: Cannot add resource '{name}' because it is not defined.");
+                    return null;
+                }
+
                 ConfigNode node = new ConfigNode("RESOURCE");
                 node.AddValue("name", name);
                 node.AddValue("amount", 0);
@@ -71,13 +80,18 @@ namespace StationScience
             return res;
         }
 
+
         public static double getResourceDensity(string name)
         {
-            var resDef = PartResourceLibrary.Instance.resourceDefinitions[StationExperiment.BIOPRODUCTS];
+            var resDef = PartResourceLibrary.Instance.resourceDefinitions[name];
             if (resDef != null)
                 return resDef.density;
+            // Log an error message if resource definition is not found
+            Debug.Log($"[STNSCI-RES] Error: Resource definition for '{name}' not found.");
             return 0;
         }
+
+
         private static double sumDemand(IEnumerable<PartResource> list)
         {
             double ret = 0;
