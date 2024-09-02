@@ -392,9 +392,6 @@ namespace StationScience
             // Enable the "Deploy Experiment" button, allowing the player to deploy the results or store them.
             Events[nameof(DeployExperiment)].active = true;
             Events[nameof(DeployExperiment)].guiName = "#autoLOC_statsci_finishExp";
-            Events[nameof(DeployExperiment)].group.name = "StationScience";
-            Events[nameof(DeployExperiment)].group.displayName = "Experiment";
-
 
             // The following two lines ensure the game engine refreshes the vessel's state and updates the UI accordingly.
             // This is particularly important to force the game's Resources UI and other related interfaces to display
