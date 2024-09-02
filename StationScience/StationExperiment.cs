@@ -386,6 +386,8 @@ namespace StationScience
             // Transition the experiment status to "Finished" after the requirements have been met.
             SetStatus(Status.Finished);
 
+            NormalMessage($"{part.partInfo.title} has completed");
+
             // Disable the "Start Experiment" button since the experiment is now completed.
             Events[nameof(StartExperiment)].active = false;
 
@@ -537,6 +539,13 @@ namespace StationScience
         protected static void PopUpMessage(string message)
         {
             ScreenMessages.PostScreenMessage(message, 6, ScreenMessageStyle.UPPER_CENTER);
+        }
+
+        protected static void NormalMessage(string message)
+        {
+
+            ScreenMessages.PostScreenMessage(message);
+
         }
 
         // Method to check if the required parts are present on the vessel

@@ -340,11 +340,27 @@ namespace StationScience
 
         private void UpdateCustomStatus()
         {
-            // Access the base class's status field
+            // Try to access the base class's status field
             BaseField baseStatusField = Fields["status"];
 
-            // Get the current value of the base status
-            string currentBaseStatus = baseStatusField.GetValue(this).ToString();
+            // Check if the baseStatusField is null
+            if (baseStatusField == null)
+            {
+                Debug.LogError("[STNSCI-MOD] Error: 'status' field not found in base class.");
+                return; // Exit the method if the field is null
+            }
+
+            // Get the current value of the base status field
+            object baseStatusValue = baseStatusField.GetValue(this);
+
+            // Check if the base status value is null
+            if (baseStatusValue == null)
+            {
+                Debug.LogError("[STNSCI-MOD] Error: 'status' field value is null.");
+                return; // Exit the method if the value is null
+            }
+
+            string currentBaseStatus = baseStatusValue.ToString();
 
             // Only update if the status has changed to avoid unnecessary updates
             if (currentBaseStatus != lastStatus)
@@ -359,6 +375,7 @@ namespace StationScience
                 lastStatus = currentBaseStatus;
             }
         }
+
     }
 }
                                                                                                 
