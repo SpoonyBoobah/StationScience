@@ -20,30 +20,23 @@ using UnityEngine; // Assuming you're using UnityEngine for Vessel and Celestial
 
 namespace StationScience
 {
-    /// <summary>
-    /// Provides utility methods for handling science-related calculations and operations
-    /// in Kerbal Space Program (KSP).
-    /// </summary>
+    // Provides utility methods for handling science-related calculations and operations
+    // in Kerbal Space Program (KSP).
     public static class ScienceHelper
     {
-        /// <summary>
-        /// Determines the scientific situation of a vessel based on its altitude and situation.
-        /// </summary>
-        /// <param name="vessel">The vessel to check.</param>
-        /// <returns>The scientific situation of the vessel.</returns>
+        // Determines the scientific situation of a vessel based on its altitude and situation.
+        // Returns the scientific situation of the vessel.
         public static ExperimentSituations GetScienceSituation(Vessel vessel)
         {
             var body = vessel.mainBody;
             return GetScienceSituation(vessel.altitude, vessel.situation, body);
         }
 
-        /// <summary>
-        /// Determines the scientific situation based on altitude, vessel situation, and celestial body.
-        /// </summary>
-        /// <param name="altitude">The altitude of the vessel.</param>
-        /// <param name="situation">The current situation of the vessel.</param>
-        /// <param name="body">The celestial body the vessel is interacting with.</param>
-        /// <returns>The scientific situation.</returns>
+        // Determines the scientific situation based on altitude, vessel situation, and celestial body.
+        // altitude: The altitude of the vessel.
+        // situation: The current situation of the vessel.
+        // body: The celestial body the vessel is interacting with.
+        // Returns the scientific situation.
         public static ExperimentSituations GetScienceSituation(double altitude, Vessel.Situations situation, CelestialBody body)
         {
             var pars = body.scienceValues; // Science parameters specific to the celestial body
@@ -69,11 +62,8 @@ namespace StationScience
             return ExperimentSituations.InSpaceHigh; // Vessel is in space at a high altitude
         }
 
-        /// <summary>
-        /// Gets the science multiplier based on the vessel's current situation and celestial body.
-        /// </summary>
-        /// <param name="vessel">The vessel to check.</param>
-        /// <returns>The science multiplier for the vessel's situation.</returns>
+        // Gets the science multiplier based on the vessel's current situation and celestial body.
+        // Returns the science multiplier for the vessel's situation.
         public static float GetScienceMultiplier(Vessel vessel)
         {
             var body = vessel.mainBody;
@@ -81,12 +71,10 @@ namespace StationScience
             return GetScienceMultiplier(situation, body);
         }
 
-        /// <summary>
-        /// Retrieves the science multiplier for a specific scientific situation and celestial body.
-        /// </summary>
-        /// <param name="situation">The scientific situation to check.</param>
-        /// <param name="body">The celestial body the vessel is interacting with.</param>
-        /// <returns>The science multiplier for the given situation and body.</returns>
+        // Retrieves the science multiplier for a specific scientific situation and celestial body.
+        // situation: The scientific situation to check.
+        // body: The celestial body the vessel is interacting with.
+        // Returns the science multiplier for the given situation and body.
         public static float GetScienceMultiplier(ExperimentSituations situation, CelestialBody body)
         {
             var pars = body.scienceValues; // Science parameters for the celestial body
@@ -104,12 +92,10 @@ namespace StationScience
             };
         }
 
-        /// <summary>
-        /// Retrieves the science subject for a given experiment name and vessel.
-        /// </summary>
-        /// <param name="experimentName">The name of the experiment.</param>
-        /// <param name="vessel">The vessel conducting the experiment.</param>
-        /// <returns>The science subject related to the experiment, or null if the experiment is not found.</returns>
+        // Retrieves the science subject for a given experiment name and vessel.
+        // experimentName: The name of the experiment.
+        // vessel: The vessel conducting the experiment.
+        // Returns the science subject related to the experiment, or null if the experiment is not found.
         public static ScienceSubject GetScienceSubject(string experimentName, Vessel vessel)
         {
             var experiment = ResearchAndDevelopment.GetExperiment(experimentName); // Get the experiment details
