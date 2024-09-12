@@ -55,7 +55,7 @@ namespace StationScience
             Finished,    // Experiment is completed and ready to be stored or transmitted for science points.
             BadLocation, // Vessel is in a bad location for the experiment and cannot be started.
             Storage,     // Experiment is in storage, meaning the experiment was finished but instead of transmitting the results the result is "stored / saved" to be returned home, in "Storage" the experiment has to be "reset" or transmitted before doing anything else.
-            Inoperable,  // Experiment is inoperable (NOTE: Do not think this is properly used at any point???)
+            Inoperable,  // Experiment is inoperable due to data being transmitted and will need resetting.
             Starved,     // Experiment is starved of resources (NOTE: Do not think this is properly used at any point???)
             Failed,      // Experiment failed and will have to be restarted (FUTURE UPDATE: Select "Hard Difficulty" and the experiment will have a slight chance to fail it it does, player will have to reset the pod and start again.
             Dead,        // Experiment failed and cannot be reused (FUTURE UPDATE: Select "Extreme Difficulty" and then if the experiment "fails", the pod is rendered useless and a new pod will have to be sent up.
@@ -72,10 +72,10 @@ namespace StationScience
         [KSPField(isPersistant = false)] public float kuarqHalflife;
 
         //GUI field for experiment Status, IMPORTANT THIS IS THE FIELD THAT PUTS IN THE STATUS IN THE CONTEXT MENU IN-GAME AND ALSO DEFAULT SET THE EXPERIMENT STATUS TO IDLE! IT ALSO SAVES WHATEVER STATE THE EXPERIMENT IS IN FOR NEXT LOAD
-        [KSPField(isPersistant = true, guiName = "Status", guiActive = true, groupName = "StationScience", groupDisplayName = "Experiment", groupStartCollapsed = false)]
+        [KSPField(isPersistant = true, guiName = "Status", guiActive = true, guiActiveEditor = false, groupName = "StationScience", groupDisplayName = "Experiment", groupStartCollapsed = false)]
         public Status currentStatus = Status.Idle;
         // GUI fields for kuarq decay.
-        [KSPField(isPersistant = false, guiName = "#autoLOC_StatSci_Decay", guiUnits = "#autoLOC_StatSci_Decayrate", guiActive = false, guiFormat = "F2", groupName = "StationScience", groupDisplayName = "StationScience", groupStartCollapsed = false)]
+        [KSPField(isPersistant = false, guiName = "#autoLOC_StatSci_Decay", guiUnits = "#autoLOC_StatSci_Decayrate", guiActive = false, guiActiveEditor = false, guiFormat = "F2", groupName = "StationScience", groupDisplayName = "StationScience", groupStartCollapsed = false)]
         public float kuarqDecay;
 
         // Persistent fields for experiment progress tracking in KSP contracts
@@ -221,6 +221,8 @@ namespace StationScience
                         UpdateStorage();
                         //RemoveAllReqs(); //For debugging purposes, this will remove all requirement resources from the experiment without any checks being done.
                         break;
+                    case Status.Inoperable:
+                        break;
                 }
 
                 yield return new WaitForSeconds(0.1f); // Update every second or adjust as needed
@@ -245,6 +247,8 @@ namespace StationScience
                     break;
                 case Status.Storage:
                     OnEnterStorage();
+                    break;
+                case Status.Inoperable:
                     break;
             }
 
@@ -340,7 +344,7 @@ namespace StationScience
         }
 
 
-        public void UpdateStorage()
+        public void UpdateStorage() //!NEEDS CHANGING TO ACCOUNT FOR SCIENCE BEING TRANSMITTED WHICH WILL MAKE THE POD INOPERABLE!
         {
             int scienceCount = GetScienceCount(); //This pulls the count of how many ScienceData reports are stored in the experiment
 
@@ -353,14 +357,14 @@ namespace StationScience
             else // If no ScienceReports are stored (scienceCount is 0 or null)
             {
 
-                SetStatus(Status.Idle); // Set the Status of the experiment to Idle
+                SetStatus(Status.Storage); // Set the Status of the experiment to Inoperable
                 Deployed = false;
 
             }
 
         }
 
-        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_startExp", active = true)]
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#autoLOC_StatSci_startExp", active = true)]
         public void StartExperiment()
         {
             if (currentStatus != Status.Idle)
@@ -386,7 +390,8 @@ namespace StationScience
             // Transition the experiment status to "Finished" after the requirements have been met.
             SetStatus(Status.Finished);
 
-            NormalMessage($"{part.partInfo.title} has completed");
+            PopUpMessage($"{part.partInfo.title} has completed");
+            Debug.Log($"[STNSCI-EXP] {part.partInfo.title} has completed");
 
             // Disable the "Start Experiment" button since the experiment is now completed.
             Events[nameof(StartExperiment)].active = false;
@@ -396,17 +401,8 @@ namespace StationScience
             Events[nameof(DeployExperiment)].guiName = "#autoLOC_statsci_finishExp";
 
             // The following two lines ensure the game engine refreshes the vessel's state and updates the UI accordingly.
-            // This is particularly important to force the game's Resources UI and other related interfaces to display
-            // the most up-to-date information, reflecting that the experiment is now finished and the requirements are no longer active.
-
-            // Temporarily take the vessel "off rails" to apply the latest state changes.
-            // This step forces the game engine to re-evaluate the vessel's situation, ensuring all state changes are recognized.
             vessel.GoOffRails();
-
-            // Return the vessel "on rails" to continue normal game processing.
-            // This step re-engages the vessel with the game's physics and other systems, completing the refresh process.
             vessel.GoOnRails();
-
         }
 
         private void OnIdleExit()
@@ -539,13 +535,6 @@ namespace StationScience
         protected static void PopUpMessage(string message)
         {
             ScreenMessages.PostScreenMessage(message, 6, ScreenMessageStyle.UPPER_CENTER);
-        }
-
-        protected static void NormalMessage(string message)
-        {
-
-            ScreenMessages.PostScreenMessage(message);
-
         }
 
         // Method to check if the required parts are present on the vessel

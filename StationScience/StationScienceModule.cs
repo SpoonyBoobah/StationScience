@@ -305,7 +305,7 @@ namespace StationScience
         }
 
         // Event to change the lights mode between off, auto, and on
-        [KSPEvent(guiActive = true, guiName = "#autoLOC_StatSci_LightsAuto", active = true)]
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#autoLOC_StatSci_LightsAuto", active = true)]
         public void LightsMode()
         {
                 lightsMode = (lightsMode + 1) % 3; // Cycle through 0, 1, 2
