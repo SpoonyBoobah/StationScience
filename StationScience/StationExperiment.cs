@@ -222,6 +222,7 @@ namespace StationScience
                         //RemoveAllReqs(); //For debugging purposes, this will remove all requirement resources from the experiment without any checks being done.
                         break;
                     case Status.Inoperable:
+                        UpdateInoperable();
                         break;
                 }
 
@@ -268,6 +269,7 @@ namespace StationScience
 
                 // Set the 'Deployed' state to false indicating that the experiment is not deployed
                 Deployed = false;
+                //Debug.Log("[STNSCI-EXP] Deployed field set to false in Idle status");
             }
         }
 
@@ -340,28 +342,49 @@ namespace StationScience
                 // Remove all requirements related to the experiment
                 // This could involve clearing dependencies, conditions, or other constraints
                 RemoveAllReqs();
+                Debug.Log("[STNSCI-EXP] Deployed field set to true in Finished status");
             }
         }
 
 
-        public void UpdateStorage() //!NEEDS CHANGING TO ACCOUNT FOR SCIENCE BEING TRANSMITTED WHICH WILL MAKE THE POD INOPERABLE!
+        // Method called to update the experiment when it's in the Storage state.
+        public void UpdateStorage()
         {
-            int scienceCount = GetScienceCount(); //This pulls the count of how many ScienceData reports are stored in the experiment
+            int scienceCount = GetScienceCount(); // Retrieve the count of stored ScienceData reports
 
-            if (scienceCount > 0) //If there is any ScienceReports stored...
+            if (scienceCount > 0) // If there is any stored ScienceReports...
+            {
+                Events[nameof(StartExperiment)].active = false; // Disable the "Start Experiment" button
+            }
+            else // No stored science data
+            {
+                // Set experiment status to "Storage"
+                SetStatus(Status.Storage);
+                Deployed = true;
+
+                // Check if the experiment is rerunnable. If not, make it inoperable when it leaves Storage
+                if (!rerunnable)
+                {
+                    SetStatus(Status.Inoperable);
+                    Debug.Log($"[STNSCI-EXP] {part.partInfo.title} is now inoperable after being stored.");
+                    Events[nameof(StartExperiment)].active = false; // Disable start experiment action
+                    Inoperable = true;
+                    Debug.Log("[STNSCI-EXP] Inoperable field set to true in Storage status");
+                }
+            }
+        }
+
+        // New method to check if the experiment should become inoperable when leaving Storage
+        private void UpdateInoperable()
+        {
+            // If currently in Storage and rerunnable is false, set to Inoperable when leaving Storage
+            if (currentStatus == Status.Storage && !rerunnable)
             {
 
-                Events[nameof(StartExperiment)].active = false;
+                SetStatus(Status.Inoperable);
+                Events[nameof(StartExperiment)].active = false; // Disable start experiment action
 
             }
-            else // If no ScienceReports are stored (scienceCount is 0 or null)
-            {
-
-                SetStatus(Status.Storage); // Set the Status of the experiment to Inoperable
-                Deployed = false;
-
-            }
-
         }
 
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#autoLOC_StatSci_startExp", active = true)]
@@ -469,10 +492,17 @@ namespace StationScience
 
             // Optionally, disable the DeployExperiment event if it should not be active in Storage.
             // Uncomment if necessary based on your application’s logic.
-            // Events[nameof(DeployExperiment)].active = false;
+            Events[nameof(DeployExperiment)].active = false;
 
             // Remove all resource requirements as they are no longer relevant in Storage.
             RemoveAllReqs();
+
+            // Check if the experiment is rerunnable, and if not, set it to inoperable
+            if (!rerunnable)
+            {
+                SetStatus(Status.Inoperable);
+                Debug.Log($"[STNSCI-EXP] {part.partInfo.title} is now inoperable after storage.");
+            }
 
             // Log the transition for debugging and record-keeping.
             //Debug.Log($"[STNSCI-EXP] Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
