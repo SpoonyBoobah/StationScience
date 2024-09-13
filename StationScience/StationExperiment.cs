@@ -360,12 +360,13 @@ namespace StationScience
             if (scienceCount > 0) // If there is any stored ScienceReports...
             {
                 Events[nameof(StartExperiment)].active = false; // Disable the "Start Experiment" button
+                Deployed = true;
             }
             else // No stored science data
             {
                 // Set experiment status to "Storage"
-                SetStatus(Status.Storage);
-                Deployed = true;
+                SetStatus(Status.Idle);
+                Deployed = false;
 
                 // Check if the experiment is rerunnable. If not, make it inoperable when it leaves Storage
                 if (!rerunnable)
