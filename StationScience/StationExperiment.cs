@@ -257,8 +257,10 @@ namespace StationScience
 
         private void UpdateIdle()
         {
+            int scienceCount = GetScienceCount(); // Retrieve the count of stored ScienceData reports
+
             // Check if the current status of the experiment is "Idle"
-            if (currentStatus == Status.Idle)
+            if (currentStatus == Status.Idle && scienceCount == 0 && !Inoperable)
             {
                 // Enable the "Start Experiment" UI button by setting its 'active' property to true
                 Events[nameof(StartExperiment)].active = true;
@@ -269,6 +271,9 @@ namespace StationScience
 
                 // Set the 'Deployed' state to false indicating that the experiment is not deployed
                 Deployed = false;
+
+                Inoperable = false;
+
                 //Debug.Log("[STNSCI-EXP] Deployed field set to false in Idle status");
             }
         }
@@ -375,16 +380,56 @@ namespace StationScience
         }
 
         // New method to check if the experiment should become inoperable when leaving Storage
-        private void UpdateInoperable()
+        public void UpdateInoperable()
         {
-            // If currently in Storage and rerunnable is false, set to Inoperable when leaving Storage
-            if (currentStatus == Status.Storage && !rerunnable)
+            int scienceCount = GetScienceCount(); // Retrieve the count of stored ScienceData reports
+
+            // Log the retrieved science count
+            //Debug.Log($"[STNSCI-EXP] Retrieved Science Count: {scienceCount}");
+            //Debug.Log($"[STNSCI-EXP] Current Status: {currentStatus}, Inoperable Flag: {Inoperable}");
+
+            // Check if the current status is Inoperable
+            if (currentStatus == Status.Inoperable)
             {
-
-                SetStatus(Status.Inoperable);
-                Events[nameof(StartExperiment)].active = false; // Disable start experiment action
-
+                if (scienceCount == 0 && Inoperable)
+                {
+                    // Keep the experiment in Inoperable status if science count is zero and Inoperable is true
+                    //Debug.Log("[STNSCI-EXP] Status is Inoperable and Science Count is zero. Keeping status as Inoperable.");
+                    Events[nameof(StartExperiment)].active = false; // Disable start experiment action
+                }
+                else
+                {
+                    // Science count is greater than zero
+                    //Debug.Log("[STNSCI-EXP] Status is Inoperable, but Science Count is greater than zero. Resetting status to Idle.");
+                    Inoperable = false; // Set to operable
+                    SetStatus(Status.Idle); // Set status to Idle
+                }
             }
+            else
+            {
+                // If the current status is not Inoperable
+                if (scienceCount > 0)
+                {
+                    // Set to Inoperable if science count is zero
+                    //Debug.Log("[STNSCI-EXP] Status is not Inoperable and Science Count is zero. Setting status to Inoperable.");
+                    Inoperable = true;
+                    SetStatus(Status.Storage); // Set status to Inoperable
+                    Events[nameof(StartExperiment)].active = false; // Disable start experiment action
+
+                }
+                else
+                {
+                    // Science count is greater than zero
+                    //Debug.Log("[STNSCI-EXP] Status is not Inoperable and Science Count is greater than zero. Setting status to Idle.");
+                    Inoperable = false; // Ensure it is operable
+                    SetStatus(Status.Inoperable); // Set status to Idle
+                }
+            }
+
+            
+
+            // Log final state after updates
+            //Debug.Log($"[STNSCI-EXP] Final Status: {currentStatus}, Inoperable Flag: {Inoperable}");
         }
 
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#autoLOC_StatSci_startExp", active = true)]
