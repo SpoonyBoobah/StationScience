@@ -65,7 +65,6 @@
   <ItemGroup>
     <!-- <Compile Include="AssemblyVersion.cs" /> -->
     <Compile Include="DebugFieldInfo.cs" />
-    <Compile Include="DebugScienceStatus.cs" />
     <Compile Include="InstallChecker.cs" />
     <Compile Include="ResourceHelper.cs" />
     <!--<Compile Include="ModuleCostlyExperiment.cs" /> -->
