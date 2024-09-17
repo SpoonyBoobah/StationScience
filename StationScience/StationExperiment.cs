@@ -360,6 +360,7 @@ namespace StationScience
             if (scienceCount > 0) // If there is any stored ScienceReports...
             {
                 Events[nameof(StartExperiment)].active = false; // Disable the "Start Experiment" button
+                Events[nameof(DeployExperiment)].active = false;
                 Deployed = true;
             }
             else // No stored science data
@@ -374,6 +375,7 @@ namespace StationScience
                     SetStatus(Status.Inoperable);
                     Debug.Log($"[STNSCI-EXP] {part.partInfo.title} is now inoperable after being stored.");
                     Events[nameof(StartExperiment)].active = false; // Disable start experiment action
+                    Events[nameof(ResetExperiment)].active = false;
                     Inoperable = true;
                     Debug.Log("[STNSCI-EXP] Inoperable field set to true in Storage status");
                 }

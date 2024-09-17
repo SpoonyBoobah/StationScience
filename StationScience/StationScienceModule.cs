@@ -231,10 +231,16 @@ namespace StationScience
         {
             base.OnStart(state);
 
+            // Disable the guiActiveEditor property of the StartResourceConverter event
+            if (Events.Contains("StartResourceConverter"))
+            {
+                Events["StartResourceConverter"].guiActiveEditor = false;
+            }
+
             // Don't do anything if we're in the editor
             if (state == StartState.Editor)
                 return;
-
+            
             // Force the part to activate and start processing resources immediately
             this.part.force_activate();
 
@@ -301,6 +307,7 @@ namespace StationScience
 
             // Update the right-click menu display
             Events["LightsMode"].guiName = lightsModeName;
+            Events["LightsMode"].guiActiveEditor = false;
             UpdateLights(); // Apply the current lights mode
         }
 
