@@ -237,9 +237,15 @@ namespace StationScience
                 Events["StartResourceConverter"].guiActiveEditor = false;
             }
 
+            // Disable the guiActiveEditor property of the StartResourceConverter event
+            if (Events.Contains("toggle"))
+            {
+                Events["toggle"].guiActiveEditor = false;
+            }
+
             // Don't do anything if we're in the editor
-            if (state == StartState.Editor)
-                return;
+            //if (state == StartState.Editor)
+                //return;
             
             // Force the part to activate and start processing resources immediately
             this.part.force_activate();
@@ -260,6 +266,7 @@ namespace StationScience
                 {
                     if (field != null)
                         field.guiActive = false; // Hide animator fields
+                        field.guiActiveEditor = false;
                 }
             }
 
