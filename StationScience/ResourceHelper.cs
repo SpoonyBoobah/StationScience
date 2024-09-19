@@ -17,44 +17,60 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace StationScience
 {
     class ResourceHelper
     {
+        // Retrieves a specific resource by name from the given part's resource list
         public static PartResource getResource(Part part, string name)
         {
-            //PartResourceList resourceList = part.Resources.;
-            //foreach
-            //return resourceList.dict.Values.First(res=>res.resourceName==name);
+            // Returns the resource from the part's resource list using the name as the key
             return part.Resources.Get(name);
         }
 
+        // Returns the current amount of a specific resource within the part
         public static double getResourceAmount(Part part, string name)
         {
+            // Fetch the resource by name
             PartResource res = getResource(part, name);
+
+            // If the resource is not found, return 0
             if (res == null)
                 return 0;
+
+            // Return the current amount of the resource
             return res.amount;
         }
 
+        // Returns the maximum amount of a specific resource within the part
         public static double getResourceMaxAmount(Part part, string name)
         {
+            // Fetch the resource by name
             PartResource res = getResource(part, name);
+
+            // If the resource is not found, return 0
             if (res == null)
                 return 0;
+
+            // Return the maximum amount of the resource
             return res.maxAmount;
         }
 
+        // Sets the maximum amount of a resource, adds the resource to the part if it doesn't exist
         public static PartResource setResourceMaxAmount(Part part, string name, double max)
         {
+            // Fetch the resource by name
             PartResource res = getResource(part, name);
+
+            // If the resource doesn't exist and max > 0, create a new resource
             if (res == null && max > 0)
             {
+                // Get the resource definition from the library
                 var resDef = PartResourceLibrary.Instance.resourceDefinitions[name];
+
+                // If the resource definition doesn't exist, log an error and return null
                 if (resDef == null)
                 {
                     // Log an error message if resource definition is not found
@@ -62,119 +78,72 @@ namespace StationScience
                     return null;
                 }
 
+                // Create a new resource node and add it to the part
                 ConfigNode node = new ConfigNode("RESOURCE");
                 node.AddValue("name", name);
-                node.AddValue("amount", 0);
-                node.AddValue("maxAmount", max);
-                res = part.AddResource(node);
+                node.AddValue("amount", 0); // Set initial amount to 0
+                node.AddValue("maxAmount", max); // Set the maximum amount to the given max
+                res = part.AddResource(node); // Add the resource to the part
             }
+
+            // If the resource exists and max > 0, update its maxAmount
             else if (res != null && max > 0)
             {
                 res.maxAmount = max;
             }
+
+            // If the resource exists but max <= 0, hide and remove the resource
             else if (res != null && max <= 0)
             {
-                res.isVisible = false;
-                part.Resources.Remove(res);
+                res.isVisible = false; // Hide the resource
+                part.Resources.Remove(res); // Remove the resource from the part
             }
             return res;
         }
 
-
+        // Returns the density of a resource by name
         public static double getResourceDensity(string name)
         {
+            // Fetch the resource definition from the library
             var resDef = PartResourceLibrary.Instance.resourceDefinitions[name];
+
+            // If the resource definition exists, return its density
             if (resDef != null)
                 return resDef.density;
-            // Log an error message if resource definition is not found
-            Debug.Log($"[STNSCI-RES] Error: Resource definition for '{name}' not found.");
+
+            // If the resource definition is not found, log an error and return 0
+            Debug.LogError($"[STNSCI-RES] Error: Resource definition for '{name}' not found.");
             return 0;
         }
 
-
+        // Calculates the total demand for resources in a given list (maxAmount - current amount)
         private static double sumDemand(IEnumerable<PartResource> list)
         {
-            double ret = 0;
+            double ret = 0; // Initialize total demand
+
+            // Iterate over each resource in the list
             foreach (PartResource pr in list)
             {
-                if(pr.flowState)
+                // If the resource's flowState is enabled, add its demand (maxAmount - amount) to the total
+                if (pr.flowState)
                     ret += (pr.maxAmount - pr.amount);
             }
-            return ret;
+            return ret; // Return the total demand
         }
 
-        /*public static double getConnectedResources(Part part, string name)
-        {
-            var res_def = PartResourceLibrary.Instance.GetDefinition(name);
-            if (res_def == null) return null;
-            double resourceAmount=0;
-            double resourceMax=0;
-            part.GetConnectedResourceTotals(res_def.id, res_def.resourceFlowMode, out resourceAmount, out resourceMax);
-            return resourceAmount;
-        }*/
-
-        /*public static double getDemand(Part part, string name)
-        {
-            return sumDemand(getConnectedResources(part, name));
-        }*/
-
+        // Calculates the total available amount of resources in a given list
         private static double sumAvailable(IEnumerable<PartResource> list)
         {
-            double ret = 0;
+            double ret = 0; // Initialize total available amount
+
+            // Iterate over each resource in the list
             foreach (PartResource pr in list)
             {
-                if(pr.flowState)
+                // If the resource's flowState is enabled, add its amount to the total
+                if (pr.flowState)
                     ret += pr.amount;
             }
-            return ret;
+            return ret; // Return the total available amount
         }
-
-        /*public static double getAvailable(Part part, string name)
-        {
-            var res_set = new List<PartResource>();
-            var res_def = PartResourceLibrary.Instance.GetDefinition(name);
-            if (res_def == null) return 0;
-            part.GetConnectedResources(res_def.id, res_def.resourceFlowMode, res_set);
-            if (res_set == null) return 0;
-            return sumAvailable(res_set);
-        }*/
-
-        /*public static double requestResourcePartial(Part part, string name, double amount)
-        {
-            if (amount > 0)
-            {
-                //UnityEngine.MonoBehaviour.print(name + " request: " + amount);
-                double taken = part.RequestResource(name, amount);
-                //UnityEngine.MonoBehaviour.print(name + " request taken: " + taken);
-                if (taken >= amount * .99999)
-                    return taken;
-                double available = getAvailable(part, name);
-                //UnityEngine.MonoBehaviour.print(name + " request available: " + available);
-                double new_amount = Math.Min(amount, available) * .99999;
-                //UnityEngine.MonoBehaviour.print(name + " request new_amount: " + new_amount);
-                if (new_amount > taken)
-                    return taken + part.RequestResource(name, new_amount - taken);
-                else
-                    return taken;
-            }
-            else if (amount < 0)
-            {
-                //UnityEngine.MonoBehaviour.print(name + " request: " + amount);
-                double taken = part.RequestResource(name, amount);
-                //UnityEngine.MonoBehaviour.print(name+" request taken: " + taken);
-                if (taken <= amount * .99999)
-                    return taken;
-                double available = getDemand(part, name);
-                //UnityEngine.MonoBehaviour.print(name + " request available: " + available);
-                double new_amount = Math.Max(amount, available) * .99999;
-                //UnityEngine.MonoBehaviour.print(name + " request new_amount: " + new_amount);
-                if (new_amount < taken)
-                    return taken + part.RequestResource(name, new_amount - taken);
-                else
-                    return taken;
-            }
-            else
-                return 0;
-        }*/
     }
 }
