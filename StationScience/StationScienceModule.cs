@@ -26,28 +26,36 @@ namespace StationScience
 {
     public class StationScienceModule : ModuleResourceConverter
     {
-        // Your custom status field
+        // Displays the research status in the UI
         [KSPField(guiActive = true, guiActiveEditor = false, guiName = "researchStatus", groupName = "StationScience", groupDisplayName = "Research")]
         public string researchStatus = "Inactive";
 
-        // Field to manage the lights mode: 0 = off, 1 = auto, 2 = on
+        // Manages light modes: 0 = off, 1 = auto, 2 = on
         [KSPField(isPersistant = true)]
         public int lightsMode = 1;
 
-        // Field to specify the required skills for the module to function properly
+        // Required skills for the module to operate
         [KSPField]
-        public string requiredSkills = "NA"; // Skills required for the module to function properly
+        public string requiredSkills = "NA";
 
-        // Field for experience bonus multiplier
+        // Experience bonus multiplier for skilled crew
         [KSPField]
         public double experienceBonus = 0.5;
 
-        private float lastCheck = 0; // Last time the skill check was performed
-        private bool actuallyProducing = false; // Whether the module is actively producing resources
-        //private ConversionRecipe lastRecipe = null; // Last conversion recipe used
-        private ModuleAnimateGeneric animator = null; // Animation module for controlling lights
-        public IEnumerable<string> skills; // Parsed skills from the requiredSkills string
-        private string lastStatus = string.Empty;  // Track the last status to avoid unnecessary updates
+        // Time tracker for skill checks
+        private float lastCheck = 0;
+
+        // Flag to indicate if resources are being produced
+        private bool actuallyProducing = false;
+
+        // Animator module to control light animations
+        private ModuleAnimateGeneric animator = null;
+
+        // Tracks the required skills as a collection
+        public IEnumerable<string> skills;
+
+        // Tracks the last known status to avoid unnecessary updates
+        private string lastStatus = string.Empty;
 
         // Checks if the crew has the required skills to operate the module
         public bool CheckSkill()
@@ -96,7 +104,7 @@ namespace StationScience
                     return; // Exit early if on home planet
                 }
 
-                // New functionality: Check if there is available storage for output resources
+                // Stop if no storage is available for the output resources
                 if (!CheckOutputResourceStorage())
                 {
                     StopResourceConverter();
@@ -177,7 +185,7 @@ namespace StationScience
             base.OnStart(state);
 
 
-            // Don't do anything if we're in the editor
+            // Skip further execution if in the editor
             if (state == StartState.Editor)
             {
                 HideFieldsAndEventsInEditor();
@@ -202,15 +210,15 @@ namespace StationScience
                 foreach (var field in animator.Fields)
                 {
                     if (field != null)
-                        field.guiActive = false; // Hide animator fields
-                        field.guiActiveEditor = false;
+                        field.guiActive = false; // Hide fields in the UI
+                        field.guiActiveEditor = false; // Hide fields in the Editor UI
                 }
 
                 foreach (var events in animator.Events)
                 {
                     if (events != null)
-                        events.guiActive = false; // Hide animator fields
-                        events.guiActiveEditor = false;
+                        events.guiActive = false; // Hide animator events
+                        events.guiActiveEditor = false; // Hide events in the Editor UI
                 }
             }
 
@@ -236,6 +244,7 @@ namespace StationScience
 
         }
 
+        // Continuously update the custom status field based on the base class status
         public override void OnUpdate()
         {
 
@@ -306,6 +315,7 @@ namespace StationScience
 
         }
 
+        // Update the custom status field from the base class status field
         private void UpdateCustomStatus()
         {
             // Try to access the base class's status field
@@ -324,7 +334,7 @@ namespace StationScience
             // Check if the base status value is null
             if (baseStatusValue == null)
             {
-                //Debug.LogError("[STNSCI-MOD] Error: 'status' field value is null.");
+                Debug.LogError("[STNSCI-MOD] Error: 'status' field value is null.");
                 return; // Exit the method if the value is null
             }
 
@@ -397,13 +407,14 @@ namespace StationScience
             return base.PrepareRecipe(0);
         }
 
+        // Helper method to hide fields and events in the editor
         private void HideFieldsAndEventsInEditor()
         {
             foreach (var field in Fields)
             {
                 if (field != null)
                 {
-                    field.guiActiveEditor = false;
+                    field.guiActiveEditor = false; // Hide fields in the editor
                     Debug.Log($"[STNSCI-MOD] Hiding field {field.name} in editor.");
                 }
             }
@@ -412,7 +423,7 @@ namespace StationScience
             {
                 if (eventBase != null)
                 {
-                    eventBase.guiActiveEditor = false;
+                    eventBase.guiActiveEditor = false; // Hide events in the editor
                     Debug.Log($"[STNSCI-MOD] Hiding event {eventBase.name} in editor.");
                 }
             }
