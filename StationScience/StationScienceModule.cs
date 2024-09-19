@@ -231,22 +231,14 @@ namespace StationScience
         {
             base.OnStart(state);
 
-            // Disable the guiActiveEditor property of the StartResourceConverter event
-            if (Events.Contains("StartResourceConverter"))
-            {
-                Events["StartResourceConverter"].guiActiveEditor = false;
-            }
-
-            // Disable the guiActiveEditor property of the StartResourceConverter event
-            if (Events.Contains("toggle"))
-            {
-                Events["toggle"].guiActiveEditor = false;
-            }
 
             // Don't do anything if we're in the editor
-            //if (state == StartState.Editor)
-                //return;
-            
+            if (state == StartState.Editor)
+            {
+                HideFieldsAndEventsInEditor();
+                
+            }
+
             // Force the part to activate and start processing resources immediately
             this.part.force_activate();
 
@@ -267,6 +259,13 @@ namespace StationScience
                     if (field != null)
                         field.guiActive = false; // Hide animator fields
                         field.guiActiveEditor = false;
+                }
+
+                foreach (var events in animator.Events)
+                {
+                    if (events != null)
+                        events.guiActive = false; // Hide animator fields
+                        events.guiActiveEditor = false;
                 }
             }
 
@@ -322,8 +321,8 @@ namespace StationScience
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#autoLOC_StatSci_LightsAuto", active = true)]
         public void LightsMode()
         {
-                lightsMode = (lightsMode + 1) % 3; // Cycle through 0, 1, 2
-                UpdateLightsMode(); // Update the lights mode display
+            lightsMode = (lightsMode + 1) % 3; // Cycle through 0, 1, 2
+            UpdateLightsMode(); // Update the lights mode display
         }
 
         // Provides additional information about the module in the part's right-click menu
@@ -345,19 +344,20 @@ namespace StationScience
         public void UpdateHeatDisplayFields()
         {
 
-                // Check and modify field visibility
-                if (overheatDisplay != null)
-                {
-                    var fieldNamesToHide = new[] { "heatDisplay", "coreTempDisplay" }; // Replace with actual field names
+            // Check and modify field visibility
+            if (overheatDisplay != null)
+            {
+                var fieldNamesToHide = new[] { "heatDisplay", "coreTempDisplay" }; // Replace with actual field names
 
-                    foreach (var field in overheatDisplay.Fields)
+                foreach (var field in overheatDisplay.Fields)
+                {
+                    if (fieldNamesToHide.Contains(field.name))
                     {
-                        if (fieldNamesToHide.Contains(field.name))
-                        {
-                            field.guiActive = false; // Ensure the field remains hidden
-                        }
+                        field.guiActive = false; // Ensure the field remains hidden
+                        field.guiActiveEditor = false;
                     }
                 }
+            }
 
         }
 
@@ -452,6 +452,26 @@ namespace StationScience
             return base.PrepareRecipe(0);
         }
 
+        private void HideFieldsAndEventsInEditor()
+        {
+            foreach (var field in Fields)
+            {
+                if (field != null)
+                {
+                    field.guiActiveEditor = false;
+                    Debug.Log($"[STNSCI-MOD] Hiding field {field.name} in editor.");
+                }
+            }
+
+            foreach (var eventBase in Events)
+            {
+                if (eventBase != null)
+                {
+                    eventBase.guiActiveEditor = false;
+                    Debug.Log($"[STNSCI-MOD] Hiding event {eventBase.name} in editor.");
+                }
+            }
+        }
     }
 }
                                                                                                 
