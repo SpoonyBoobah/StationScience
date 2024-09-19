@@ -49,19 +49,6 @@ namespace StationScience
         public IEnumerable<string> skills; // Parsed skills from the requiredSkills string
         private string lastStatus = string.Empty;  // Track the last status to avoid unnecessary updates
 
-        /*
-        // Fields for Kibbal-to-Bioproduct conversion
-        [KSPField(isPersistant = true)]
-        public float kibbalConsumptionRate = 1.0f; // Base rate at which Kibbal is consumed
-
-        [KSPField(isPersistant = true)]
-        public float bioproductConversionRate = 0.5f; // Conversion rate from Kibbal to Bioproducts
-
-        // Field to track the status of Kibbal consumption increase
-        //[KSPField(guiActive = true, guiName = "Kibbal Consumption Status", groupName = "StationScience", groupDisplayName = "Research", groupStartCollapsed = false)]
-        //public string kibbalConsumptionStatus = "Normal"; // Default status is "Normal"
-        */
-
         // Checks if the crew has the required skills to operate the module
         public bool CheckSkill()
         {
@@ -140,24 +127,6 @@ namespace StationScience
             base.PreProcessing();
         }
 
-
-        /*
-        // Prepare the conversion recipe for Kibbal to Bioproducts conversion
-        protected override ConversionRecipe PrepareRecipe(double deltaTime)
-        {
-            var recipe = new ConversionRecipe();
-
-            // Add Kibbal consumption and Bioproduct production to the recipe
-            recipe.Inputs.Add(new ResourceRatio { ResourceName = "Kibbal", Ratio = kibbalConsumptionRate, FlowMode = ResourceFlowMode.ALL_VESSEL });
-            recipe.Outputs.Add(new ResourceRatio { ResourceName = "Bioproducts", Ratio = kibbalConsumptionRate * bioproductConversionRate, FlowMode = ResourceFlowMode.ALL_VESSEL });
-
-            // Call the base class's PrepareRecipe to handle any other resource conversions
-            lastRecipe = base.PrepareRecipe(deltaTime);
-
-            return recipe; // Return the prepared recipe
-        }
-        */
-
         // Post-processing after resource conversion is done
         protected override void PostProcess(ConverterResults result, double deltaTime)
         {
@@ -171,30 +140,6 @@ namespace StationScience
             if (lightsMode == 1)
                 UpdateLights();
         }
-
-        /*
-        // Button to increase the Kibbal consumption rate and Bioproduct conversion rate
-        [KSPEvent(guiName = "Increase Kibbal Consumption", active = true, guiActive = true)]
-        public void IncreaseKibbalConsumption()
-        {
-            // Ensure this action only happens when the part is the "StnSciZoo"
-            if (this.part.name == "StnSciZoo")
-            {
-                kibbalConsumptionRate = 1.0f; // Set to normal consumption rate
-                bioproductConversionRate = 0.5f; // Set to normal conversion rate
-
-                // Update the status field
-                kibbalConsumptionStatus = "Normal"; // Change status to "Normal"
-            }
-            else
-            {
-                kibbalConsumptionRate += 0.5f; // Increase Kibbal consumption rate
-                bioproductConversionRate += 0.25f; // Increase Bioproduct conversion rate
-
-                kibbalConsumptionStatus = "Increased"; // Change status to "Increased"
-            }
-        }
-        */
 
         // Updates the lights based on the current state of production and lights mode
         private void UpdateLights()
