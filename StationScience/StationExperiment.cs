@@ -274,7 +274,12 @@ namespace StationScience
 
                 Inoperable = false;
 
-                //Debug.Log("[STNSCI-EXP] Deployed field set to false in Idle status");
+                // Check if debug messages are enabled in settings
+                var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+                if (settings.expDebugging)
+                {
+                    Debug.Log("[STNSCI-EXP] Deployed field set to false in Idle status");
+                }
             }
         }
 
@@ -299,7 +304,7 @@ namespace StationScience
                 // If either is null, log an error and revert the experiment status to 'Idle'.
                 if (r.Value?.Name == null)
                 {
-                    Debug.Log($"[STNSCI-EXP] {part.partInfo.title} ERROR! required resource is null in Running");
+                    Debug.LogError($"[STNSCI-EXP] {part.partInfo.title} ERROR! required resource is null in Running");
                     SetStatus(Status.Idle); // Use SetStatus to properly handle state transitions.
                     return false; // Return false as the experiment cannot run without valid resources.
                 }
@@ -309,7 +314,11 @@ namespace StationScience
                 // Round the amount down to 2 decimal places.
                 double roundedAmount = Math.Floor(amount * 100) / 100;
                 // Log the current amount and required amount for debugging purposes.
-                //Debug.Log($"[STNSCI-EXP] {part.partInfo.title} {r.Value.Name}: {roundedAmount:F2}/{r.Value.Amount:F1}"); //Disabled as only for debugging purposes!
+                var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+                if (settings.expDebugging)
+                {
+                    Debug.Log($"[STNSCI-EXP] {part.partInfo.title} {r.Value.Name}: {roundedAmount:F2}/{r.Value.Amount:F1}");
+                }
 
 
                 // Check if the available amount of the resource is less than the required amount.
@@ -347,7 +356,11 @@ namespace StationScience
                 // Remove all requirements related to the experiment
                 // This could involve clearing dependencies, conditions, or other constraints
                 RemoveAllReqs();
-                Debug.Log("[STNSCI-EXP] Deployed field set to true in Finished status");
+                var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+                if (settings.expDebugging)
+                {
+                    Debug.Log("[STNSCI-EXP] Deployed field set to true in Finished status");
+                }
             }
         }
 
@@ -373,11 +386,16 @@ namespace StationScience
                 if (!rerunnable)
                 {
                     SetStatus(Status.Inoperable);
-                    Debug.Log($"[STNSCI-EXP] {part.partInfo.title} is now inoperable after being stored.");
+                    
                     Events[nameof(StartExperiment)].active = false; // Disable start experiment action
                     Events[nameof(ResetExperiment)].active = false;
                     Inoperable = true;
-                    Debug.Log("[STNSCI-EXP] Inoperable field set to true in Storage status");
+                    var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+                    if (settings.expDebugging)
+                    {
+                        Debug.Log("[STNSCI-EXP] Inoperable field set to true in Storage status");
+                        Debug.Log($"[STNSCI-EXP] {part.partInfo.title} is now inoperable after being stored.");
+                    }
                 }
             }
         }
@@ -388,8 +406,12 @@ namespace StationScience
             int scienceCount = GetScienceCount(); // Retrieve the count of stored ScienceData reports
 
             // Log the retrieved science count
-            //Debug.Log($"[STNSCI-EXP] Retrieved Science Count: {scienceCount}");
-            //Debug.Log($"[STNSCI-EXP] Current Status: {currentStatus}, Inoperable Flag: {Inoperable}");
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+            if (settings.expDebugging)
+            {
+                Debug.Log($"[STNSCI-EXP] Retrieved Science Count: {scienceCount}");
+                Debug.Log($"[STNSCI-EXP] Current Status: {currentStatus}, Inoperable Flag: {Inoperable}");
+            }
 
             // Check if the current status is Inoperable
             if (currentStatus == Status.Inoperable)
@@ -397,13 +419,19 @@ namespace StationScience
                 if (scienceCount == 0 && Inoperable)
                 {
                     // Keep the experiment in Inoperable status if science count is zero and Inoperable is true
-                    //Debug.Log("[STNSCI-EXP] Status is Inoperable and Science Count is zero. Keeping status as Inoperable.");
+                    if (settings.expDebugging)
+                    {
+                        Debug.Log("[STNSCI-EXP] Status is Inoperable and Science Count is zero. Keeping status as Inoperable.");
+                    }
                     Events[nameof(StartExperiment)].active = false; // Disable start experiment action
                 }
                 else
                 {
                     // Science count is greater than zero
-                    //Debug.Log("[STNSCI-EXP] Status is Inoperable, but Science Count is greater than zero. Resetting status to Idle.");
+                    if (settings.expDebugging)
+                    {
+                        Debug.Log("[STNSCI-EXP] Status is Inoperable, but Science Count is greater than zero. Resetting status to Idle.");
+                    }
                     Inoperable = false; // Set to operable
                     SetStatus(Status.Idle); // Set status to Idle
                 }
@@ -414,7 +442,10 @@ namespace StationScience
                 if (scienceCount > 0)
                 {
                     // Set to Inoperable if science count is zero
-                    //Debug.Log("[STNSCI-EXP] Status is not Inoperable and Science Count is zero. Setting status to Inoperable.");
+                    if (settings.expDebugging)
+                    {
+                        Debug.Log("[STNSCI-EXP] Status is not Inoperable and Science Count is zero. Setting status to Inoperable.");
+                    }
                     Inoperable = true;
                     SetStatus(Status.Storage); // Set status to Inoperable
                     Events[nameof(StartExperiment)].active = false; // Disable start experiment action
@@ -423,30 +454,41 @@ namespace StationScience
                 else
                 {
                     // Science count is greater than zero
-                    //Debug.Log("[STNSCI-EXP] Status is not Inoperable and Science Count is greater than zero. Setting status to Idle.");
+                    if (settings.expDebugging)
+                    {
+                        Debug.Log("[STNSCI-EXP] Status is not Inoperable and Science Count is greater than zero. Setting status to Idle.");
+                    }
                     Inoperable = false; // Ensure it is operable
                     SetStatus(Status.Inoperable); // Set status to Idle
                 }
             }
 
-            
 
             // Log final state after updates
-            //Debug.Log($"[STNSCI-EXP] Final Status: {currentStatus}, Inoperable Flag: {Inoperable}");
+            if (settings.expDebugging)
+            {
+                Debug.Log($"[STNSCI-EXP] Final Status: {currentStatus}, Inoperable Flag: {Inoperable}");
+            }
         }
 
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#autoLOC_StatSci_startExp", active = true)]
         public void StartExperiment()
         {
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+
             if (currentStatus != Status.Idle)
             {
-                Debug.Log($"[STNSCI-EXP] Cannot Start Experiment because we are not idle currentStatus = {currentStatus}"); //This should'nt ever happen, its just in case there is an error in the code which is showing the StartExp button in wrong state.
+                Debug.LogError($"[STNSCI-EXP] Cannot Start Experiment because we are not idle currentStatus = {currentStatus}"); //This should'nt ever happen, its just in case there is an error in the code which is showing the StartExp button in wrong state.
                 return;
             }
 
             if (CheckBoring(vessel, true)) // Check if the experiment is boring; if it is, remain idle (return false) and disable the Start Experiment button.
             {
-                Debug.Log("[STNSCI-EXP] Cannot start Experiment here!");
+                if (settings.expDebugging)
+                {
+                    Debug.Log("[STNSCI-EXP] Cannot start Experiment here!");
+
+                }
                 return;
 
             }
@@ -457,12 +499,15 @@ namespace StationScience
 
         public void FinishExperiment()
         {
-
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
             // Transition the experiment status to "Finished" after the requirements have been met.
             SetStatus(Status.Finished);
 
             PopUpMessage($"{part.partInfo.title} has completed");
-            Debug.Log($"[STNSCI-EXP] {part.partInfo.title} has completed");
+            if (settings.expDebugging)
+            {
+                Debug.Log($"[STNSCI-EXP] {part.partInfo.title} has completed");
+            }
 
             // Disable the "Start Experiment" button since the experiment is now completed.
             Events[nameof(StartExperiment)].active = false;
@@ -478,8 +523,13 @@ namespace StationScience
 
         private void OnIdleExit()
         {
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+
             // Log the transition for debugging purposes
-            Debug.Log($"[STNSCI-EXP] Exiting Idle state for {part.partInfo.title}");
+            if (settings.expDebugging)
+            {
+                Debug.Log($"[STNSCI-EXP] Exiting Idle state for {part.partInfo.title}");
+            }
 
             PopUpMessage("#autoLOC_StatSci_screen_started"); // Pop-up message "Started experiment!"
 
@@ -492,6 +542,7 @@ namespace StationScience
         }
         private void OnRunningEnter()
         {
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
             // Add default requirements for the experiment.
             // This could involve setting up initial conditions or constraints.
             AddDefaultRequirements();
@@ -508,24 +559,31 @@ namespace StationScience
             foreach (var r in requirements)
             {
                 // Debug line to output information about the current requirement.
-                //Debug.Log($"[STNSCI-EXP] Processing requirement: Resource Name = {r.Value.Name}, Amount = {r.Value.Amount}");
+                if (settings.expDebugging)
+                {
+                    Debug.Log($"[STNSCI-EXP] Processing requirement: Resource Name = {r.Value.Name}, Amount = {r.Value.Amount}");
+                }
 
                 // Set or update the maximum amount of the specified resource for each requirement.
                 // The resource is identified by its name, and the maximum amount is set as specified.
                 SetResourceMaxAmount(r.Value.Name, r.Value.Amount);
 
                 // Debug line to confirm the resource has been updated.
-                //Debug.Log($"[STNSCI-EXP] Resource '{r.Value.Name}' max amount set to {r.Value.Amount}");
+                if (settings.expDebugging)
+                {
+                    Debug.Log($"[STNSCI-EXP] Resource '{r.Value.Name}' max amount set to {r.Value.Amount}");
+                }
 
             }
         }
 
         public void OnEnterStorage()
         {
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
             // Ensure the experiment is in a valid state before transitioning to Storage.
             if (currentStatus == Status.Storage)
             {
-                Debug.Log("[STNSCI-EXP] Experiment is already in Storage status.");
+                Debug.LogError("[STNSCI-EXP] Experiment is already in Storage status.");
                 return; // No action needed if already in Storage.
             }
 
@@ -549,11 +607,17 @@ namespace StationScience
             if (!rerunnable)
             {
                 SetStatus(Status.Inoperable);
-                Debug.Log($"[STNSCI-EXP] {part.partInfo.title} is now inoperable after storage.");
+                if (settings.expDebugging)
+                {
+                    Debug.Log($"[STNSCI-EXP] {part.partInfo.title} is now inoperable after storage.");
+                }
             }
 
             // Log the transition for debugging and record-keeping.
-            //Debug.Log($"[STNSCI-EXP] Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
+            if (settings.expDebugging)
+            {
+                Debug.Log($"[STNSCI-EXP] Experiment {part.partInfo.title} has entered Storage state and all requirements have been removed.");
+            }
 
             // Temporarily take the vessel "off rails".
             // This is often done to ensure that changes to the vessel's state or status are processed correctly.
@@ -648,9 +712,12 @@ namespace StationScience
         // including additional details about specific requirements like KUARQS and BIOPRODUCTS to be placed in the part menu in the VAB or SPH.
         public string GenerateRequirementInfo(Dictionary<string, Requirement> requirements, double kuarqHalflife, double partMass)
         {
+
             // Initialize the return string and placeholders for additional requirement details
             string ret = "";
             string reqLab = "", reqCyclo = "", reqZoo = "", reqSol = "";
+
+            var settings = HighLogic.CurrentGame?.Parameters?.CustomParams<SettingsUI>();
 
             // Check if the required parts are present on the vessel
             if (!CheckRequiredParts())
@@ -668,8 +735,11 @@ namespace StationScience
                 // Append the requirement name and amount to the return string
                 ret += r.Value.Name + " " + Localizer.Format("#autoLOC_StatSci_Req", r.Value.Amount);
 
-                // Debug output to ensure switch statement is entered
-                Debug.Log($"[STNSCI-EXP] Processing Requirement: {r.Value.Name}");
+                //Debug output to ensure switch statement is entered
+                if (settings != null && settings.expDebugging)
+                {
+                    Debug.Log($"[STNSCI-EXP] Processing Requirement: {r.Value.Name}");
+                }
 
                 // Handle special requirements that need additional information or formatting
                 switch (r.Value.Name)
@@ -695,14 +765,20 @@ namespace StationScience
                         break;
 
                     default:
-                        Debug.Log($"[STNSCI-EXP] Unhandled Requirement: {r.Value.Name}");
+                        if (settings != null && settings.expDebugging)
+                        {
+                            Debug.Log($"[STNSCI-EXP] Unhandled Requirement: {r.Value.Name}");
+                        }
                         break;
                 }
             }
 
             // Return the full requirement info, including any additional details appended from specific requirements
             string finalResult = ret + reqLab + reqCyclo + reqZoo + reqSol + "\n\n";
-            Debug.Log($"[STNSCI-EXP] Final Result: {finalResult}");
+            if (settings != null && settings.expDebugging)
+            {
+                Debug.Log($"[STNSCI-EXP] Final Result: {finalResult}");
+            }
             return finalResult;
         }
 
