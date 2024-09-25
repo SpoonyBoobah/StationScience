@@ -149,6 +149,7 @@ namespace StationScience
                 requirements.Add(SOLUTIONS, new Requirement(SOLUTIONS, solutionsRequired));
         }
 
+        //Method to remove all requirements when called.
         private void RemoveAllReqs()
         {
             var reqsToRemove = new List<string>();
@@ -509,20 +510,15 @@ namespace StationScience
             // Transition the experiment status to "Finished" after the requirements have been met.
             SetStatus(Status.Finished);
 
+            //Send alert messages on screen and to the MessageSystem UI.
             PopUpMessage($"{part.partInfo.title} has completed");
+            MessageAlert("StationScience Experiment Finished", $"{part.partInfo.title} experiment has been successfully completed.", MessageSystemButton.MessageButtonColor.GREEN, MessageSystemButton.ButtonIcons.COMPLETE);
+
+            //Debugging logging if enabled
             if (settings.expDebugging)
             {
                 Debug.Log($"[STNSCI-EXP] {part.partInfo.title} has completed");
             }
-
-            // Add MessageSystem notification
-            MessageSystem.Message message = new MessageSystem.Message(
-                "StationScience Experiment Finished",
-                $"{part.partInfo.title} experiment has been successfully completed.",
-                MessageSystemButton.MessageButtonColor.GREEN,
-                MessageSystemButton.ButtonIcons.COMPLETE
-            );
-            MessageSystem.Instance.AddMessage(message);
 
             // Disable the "Start Experiment" button since the experiment is now completed.
             Events[nameof(StartExperiment)].active = false;
@@ -692,6 +688,21 @@ namespace StationScience
         protected static void PopUpMessage(string message)
         {
             ScreenMessages.PostScreenMessage(message, 6, ScreenMessageStyle.UPPER_CENTER);
+        }
+
+        //Shortcut method to send MessageSystem alerts whenever called
+        public void MessageAlert(string title, string description, MessageSystemButton.MessageButtonColor color = MessageSystemButton.MessageButtonColor.GREEN, MessageSystemButton.ButtonIcons icon = MessageSystemButton.ButtonIcons.MESSAGE)
+        {
+            // Create a new message for the KSP MessageSystem
+            MessageSystem.Message message = new MessageSystem.Message(
+                title,       // Title of the message
+                description, // Description of the message
+                color,       // Color of the message icon (default: GREEN)
+                icon         // Icon of the message (default: MESSAGE)
+            );
+
+            // Add the message to the MessageSystem
+            MessageSystem.Instance.AddMessage(message);
         }
 
         // Method to check if the required parts are present on the vessel
