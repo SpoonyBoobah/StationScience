@@ -23,6 +23,7 @@ using System.Text;
 using UnityEngine;
 using System.Collections;
 using System.Diagnostics.Eventing.Reader;
+using KSP.UI.Screens;
 
 namespace StationScience
 {
@@ -513,6 +514,15 @@ namespace StationScience
             {
                 Debug.Log($"[STNSCI-EXP] {part.partInfo.title} has completed");
             }
+
+            // Add MessageSystem notification
+            MessageSystem.Message message = new MessageSystem.Message(
+                "StationScience Experiment Finished",
+                $"{part.partInfo.title} experiment has been successfully completed.",
+                MessageSystemButton.MessageButtonColor.GREEN,
+                MessageSystemButton.ButtonIcons.COMPLETE
+            );
+            MessageSystem.Instance.AddMessage(message);
 
             // Disable the "Start Experiment" button since the experiment is now completed.
             Events[nameof(StartExperiment)].active = false;
