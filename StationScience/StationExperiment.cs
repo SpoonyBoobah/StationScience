@@ -92,7 +92,12 @@ namespace StationScience
         // Method to check if the vessel is in a "boring" location for experiments
         public static bool CheckBoring(Vessel vessel, bool msg = false)
         {
-            //Debug.Log($"[STNSCI-EXP] {vessel.Landed}, {vessel.landedAt}, {vessel.launchTime}, {vessel.situation}, {vessel.orbit.referenceBody.name}"); //DISABLED due to log spam!
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+            if (settings.expDebugging)
+            {
+                Debug.Log($"[STNSCI-EXP] {vessel.Landed}, {vessel.landedAt}, {vessel.launchTime}, {vessel.situation}, {vessel.orbit.referenceBody.name}"); //DISABLED due to log spam!
+
+            }
             if (vessel.orbit.referenceBody == FlightGlobals.GetHomeBody() &&
                 (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH ||
                 vessel.situation == Vessel.Situations.SPLASHED || vessel.altitude <= vessel.orbit.referenceBody.atmosphereDepth))

@@ -239,8 +239,13 @@ namespace StationScience
             baseStatusField.guiActive = false;
             baseStatusField.guiActiveEditor = false;
 
+
             // Optionally log the value to verify the copy
-            Debug.Log($"[STNSCI-MOD] Copied status from base class: {researchStatus}");
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+            if (settings.sciDebugging)
+            {
+                Debug.Log($"[STNSCI-MOD] Copied status from base class: {researchStatus}");
+            }
 
         }
 
@@ -318,6 +323,7 @@ namespace StationScience
         // Update the custom status field from the base class status field
         private void UpdateCustomStatus()
         {
+
             // Try to access the base class's status field
             BaseField baseStatusField = Fields["status"];
 
@@ -357,6 +363,8 @@ namespace StationScience
         // Check if there is available storage space for the output resource on the vessel
         public bool CheckOutputResourceStorage()
         {
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+
             // Get the output resources from the conversion recipe
             var recipe = GetCurrentRecipe();
             if (recipe == null || recipe.Outputs.Count == 0)
@@ -383,13 +391,19 @@ namespace StationScience
                 part.GetConnectedResourceTotals(resourceDef.id, out totalAvailableStorage, out totalMaxStorage);
 
                 // Log details for debugging
-                //Debug.Log($"[STNSCI-MOD] Checking storage for {output.ResourceName}: available = {totalAvailableStorage}, max = {totalMaxStorage}");
+                if (settings.sciDebugging)
+                {
+                    Debug.Log($"[STNSCI-MOD] Checking storage for {output.ResourceName}: available = {totalAvailableStorage}, max = {totalMaxStorage}");
+                }
 
                 // Check if there is any max storage for this resource (null check included for safety)
                 if (totalMaxStorage <= 0 || totalMaxStorage == double.NaN)
                 {
                     this.status = $"Inactive; no storage for {output.ResourceName}";
-                    Debug.Log($"[STNSCI-MOD] No storage for {output.ResourceName}, stopping converter.");
+                    if (settings.sciDebugging)
+                    {
+                        Debug.Log($"[STNSCI-MOD] No storage for {output.ResourceName}, stopping converter.");
+                    }
                     return false;  // Stop the converter if no storage exists or if the value is unexpected
                 }
 
@@ -410,12 +424,17 @@ namespace StationScience
         // Helper method to hide fields and events in the editor
         private void HideFieldsAndEventsInEditor()
         {
+            var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+
             foreach (var field in Fields)
             {
                 if (field != null)
                 {
                     field.guiActiveEditor = false; // Hide fields in the editor
-                    Debug.Log($"[STNSCI-MOD] Hiding field {field.name} in editor.");
+                    if (settings.sciDebugging)
+                    {
+                        Debug.Log($"[STNSCI-MOD] Hiding field {field.name} in editor.");
+                    }
                 }
             }
 
@@ -424,7 +443,10 @@ namespace StationScience
                 if (eventBase != null)
                 {
                     eventBase.guiActiveEditor = false; // Hide events in the editor
-                    Debug.Log($"[STNSCI-MOD] Hiding event {eventBase.name} in editor.");
+                    if (settings.sciDebugging)
+                    {
+                        Debug.Log($"[STNSCI-MOD] Hiding event {eventBase.name} in editor.");
+                    }
                 }
             }
         }
