@@ -266,14 +266,29 @@ namespace StationScience
         {
             int scienceCount = GetScienceCount(); // Retrieve the count of stored ScienceData reports
 
-            // Check if the current status of the experiment is "Idle"
+            // If the experiment is in Idle and there is science data, set status to Storage
+            if (currentStatus == Status.Idle && scienceCount > 0)
+            {
+                SetStatus(Status.Storage); // Set status to Storage
+
+                // Debugging log to track this transition
+                var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
+                if (settings.expDebugging)
+                {
+                    Debug.Log("[STNSCI-EXP] Science count greater than zero in Idle status. Setting status to Storage.");
+                }
+
+                // Exit early since we don't want to continue with the Idle logic
+                return;
+            }
+
+            // Existing check for Idle status when science count is zero and Inoperable is false
             if (currentStatus == Status.Idle && scienceCount == 0 && !Inoperable)
             {
                 // Enable the "Start Experiment" UI button by setting its 'active' property to true
                 Events[nameof(StartExperiment)].active = true;
 
                 // Disable the "Deploy Experiment" UI button by setting its 'active' property to false
-                // This button is typically used for starting or deploying the experiment in stock KSP.
                 Events[nameof(DeployExperiment)].active = false;
 
                 // Set the 'Deployed' state to false indicating that the experiment is not deployed
@@ -437,8 +452,10 @@ namespace StationScience
                     // Science count is greater than zero
                     if (settings.expDebugging)
                     {
+                        
                         Debug.Log("[STNSCI-EXP] Status is Inoperable, but Science Count is greater than zero. Resetting status to Idle.");
                     }
+                    SetStatus(Status.Storage);
                     Inoperable = false; // Set to operable
                     SetStatus(Status.Idle); // Set status to Idle
                 }
@@ -534,6 +551,7 @@ namespace StationScience
 
         private void OnIdleExit()
         {
+            int scienceCount = GetScienceCount(); // Retrieve the count of stored ScienceData reports
             var settings = HighLogic.CurrentGame.Parameters.CustomParams<SettingsUI>();
 
             // Log the transition for debugging purposes
@@ -542,7 +560,10 @@ namespace StationScience
                 Debug.Log($"[STNSCI-EXP] Exiting Idle state for {part.partInfo.title}");
             }
 
-            PopUpMessage("#autoLOC_StatSci_screen_started"); // Pop-up message "Started experiment!"
+            if (scienceCount <= 0)
+            {
+                PopUpMessage("#autoLOC_StatSci_screen_started"); // Pop-up message "Started experiment!"
+            }
 
             // Successfully exited idle, so disable the StartExperiment event and return true
             Events[nameof(StartExperiment)].active = false;
