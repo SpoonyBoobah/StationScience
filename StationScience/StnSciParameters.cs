@@ -27,65 +27,74 @@ using KSP.Localization;
 
 namespace StationScience.Contracts.Parameters
 {
-    
+    // Interface for parameters related to a specific part
     public interface PartRelated
     {
-        AvailablePart GetPartType();
+        AvailablePart GetPartType();  // Method to retrieve the part type for the experiment
     }
 
+    // Interface for parameters related to a celestial body
     public interface BodyRelated
     {
-        CelestialBody GetBody();
+        CelestialBody GetBody();  // Method to retrieve the target celestial body for the experiment
     }
 
+    // Main contract parameter class for Station Science
     public class StnSciParameter : ContractParameter, PartRelated, BodyRelated
     {
-        AvailablePart experimentType;
-        CelestialBody targetBody;
+        AvailablePart experimentType;  // The experiment part involved in the contract
+        CelestialBody targetBody;      // The target celestial body for the experiment
 
+        // Method to get the experiment type (part) of the contract
         public AvailablePart GetPartType()
         {
             return experimentType;
         }
 
+        // Method to get the target celestial body of the contract
         public CelestialBody GetBody()
         {
             return targetBody;
         }
 
+        // Default constructor, initializes the parameter as enabled and not disabling on state change
         public StnSciParameter()
         {
-            //SetExperiment("StnSciExperiment1");
             this.Enabled = true;
             this.DisableOnStateChange = false;
         }
 
+        // Constructor for setting experiment part and celestial body target
         public StnSciParameter(AvailablePart type, CelestialBody body)
         {
             this.Enabled = true;
             this.DisableOnStateChange = false;
             this.experimentType = type;
             this.targetBody = body;
-            //this.AddParameter(new Parameters.NewPodParameter(), null);
+            // Adding sub-parameters related to experiment execution
             this.AddParameter(new Parameters.DoExperimentParameter(), null);
             this.AddParameter(new Parameters.ReturnExperimentParameter(), null);
         }
 
+        // Unique hash string for this parameter (based on the experiment type)
         protected override string GetHashString()
         {
             return experimentType.name;
         }
 
+        // Title of the parameter, localized with experiment type and celestial body name
         protected override string GetTitle()
         {
             return Localizer.Format("#autoLOC_StatSciParam_Title", experimentType.title, targetBody.GetDisplayName());
         }
 
+        // Additional notes for the parameter, localized with experiment type and celestial body name
         protected override string GetNotes()
         {
             return Localizer.Format("#autoLOC_StatSciParam_Notes", experimentType.title, targetBody.GetDisplayName());
         }
 
+        // Sets the experiment part by name, logging an error if it fails
         private bool SetExperiment(string exp)
         {
             experimentType = PartLoader.getPartInfoByName(exp);
@@ -97,11 +106,13 @@ namespace StationScience.Contracts.Parameters
             return true;
         }
 
+        // Marks this parameter as complete
         public void Complete()
         {
             SetComplete();
         }
 
+        // Sets the target celestial body by name, logging an error if it fails
         private bool SetTarget(string planet)
         {
             targetBody = FlightGlobals.Bodies.FirstOrDefault(body => body.bodyName.ToLower() == planet.ToLower());
@@ -113,12 +124,15 @@ namespace StationScience.Contracts.Parameters
             return true;
         }
 
+        // Saves the parameter's data to a config node
         protected override void OnSave(ConfigNode node)
         {
             base.OnSave(node);
             node.AddValue("targetBody", targetBody.name);
             node.AddValue("experimentType", experimentType.name);
         }
+
+        // Loads the parameter's data from a config node
         protected override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
@@ -129,6 +143,7 @@ namespace StationScience.Contracts.Parameters
             SetTarget(bodyID);
         }
 
+        // Static method to get the experiment type (part) from the parent contract parameter
         static public AvailablePart getExperimentType(ContractParameter o)
         {
             object par = o.Parent;
@@ -141,6 +156,7 @@ namespace StationScience.Contracts.Parameters
                 return null;
         }
 
+        // Static method to get the target celestial body from the parent contract parameter
         static public CelestialBody getTargetBody(ContractParameter o)
         {
             BodyRelated parent = o.Parent as BodyRelated;
@@ -151,19 +167,22 @@ namespace StationScience.Contracts.Parameters
         }
     }
 
+    // Parameter that tracks if a new experiment part is launched and sets it as complete
     public class NewPodParameter : ContractParameter
     {
         public NewPodParameter()
         {
-            //SetExperiment("StnSciExperiment1");
             this.Enabled = true;
             this.DisableOnStateChange = false;
         }
 
+        // Hash string for this parameter
         protected override string GetHashString()
         {
             return "new pod parameter " + this.GetHashCode();
         }
+
+        // Title of this parameter
         protected override string GetTitle()
         {
             AvailablePart experimentType = StnSciParameter.getExperimentType(this);
@@ -172,38 +191,24 @@ namespace StationScience.Contracts.Parameters
             return Localizer.Format("#autoLOC_StatSciNewPod_TitleB", experimentType.title);
         }
 
+        // Registers event listeners for launch and vessel situation change
         protected override void OnRegister()
         {
             GameEvents.onLaunch.Add(OnLaunch);
             GameEvents.onVesselSituationChange.Add(OnVesselSituationChange);
         }
+
+        // Unregisters event listeners for launch and vessel situation change
         protected override void OnUnregister()
         {
             GameEvents.onLaunch.Remove(OnLaunch);
             GameEvents.onVesselSituationChange.Remove(OnVesselSituationChange);
         }
 
-        private void OnVesselCreate(Vessel vessel)
+        // Event handler for vessel situation changes, e.g., launch
+        private void OnVesselSituationChange(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> arg)
         {
-            AvailablePart experimentType = StnSciParameter.getExperimentType(this);
-            if (experimentType == null)
-                return;
-            foreach (Part part in vessel.Parts)
-            {
-                if (part.name == experimentType.name)
-                {
-                    StationExperiment e = part.FindModuleImplementing<StationExperiment>();
-                    if (e != null)
-                    {
-                        e.launched = (float)Planetarium.GetUniversalTime();
-                    }
-                }
-            }
-        }
-
-        private void OnVesselSituationChange(GameEvents.HostedFromToAction<Vessel,Vessel.Situations> arg)
-        {
-            if(!((arg.from == Vessel.Situations.LANDED || arg.from == Vessel.Situations.PRELAUNCH) &&
+            if (!((arg.from == Vessel.Situations.LANDED || arg.from == Vessel.Situations.PRELAUNCH) &&
                   (arg.to == Vessel.Situations.FLYING || arg.to == Vessel.Situations.SUB_ORBITAL)))
                 return;
             if (arg.host.mainBody.name != "Kerbin")
@@ -224,6 +229,7 @@ namespace StationScience.Contracts.Parameters
             }
         }
 
+        // Event handler for launch, marks the experiment as launched
         private void OnLaunch(EventReport report)
         {
             AvailablePart experimentType = StnSciParameter.getExperimentType(this);
@@ -245,6 +251,7 @@ namespace StationScience.Contracts.Parameters
 
         private float lastUpdate = 0;
 
+        // Periodically checks if the experiment is launched and marks it complete
         protected override void OnUpdate()
         {
             base.OnUpdate();
@@ -274,217 +281,13 @@ namespace StationScience.Contracts.Parameters
             SetIncomplete();
         }
 
+        // Saves the parameter's state to a config node
         protected override void OnSave(ConfigNode node)
         {
             base.OnSave(node);
         }
-        protected override void OnLoad(ConfigNode node)
-        {
-            base.OnLoad(node);
-            this.Enabled = true;
-        }
-    }
 
-    public class DoExperimentParameter : ContractParameter
-    {
-        public DoExperimentParameter()
-        {
-            this.Enabled = true;
-            this.DisableOnStateChange = false;
-        }
-
-        protected override string GetHashString()
-        {
-            return Localizer.Format("#autoLOC_StatSciDoExp_Hash", this.GetHashCode());
-        }
-        protected override string GetTitle()
-        {
-            CelestialBody targetBody = StnSciParameter.getTargetBody(this);
-            if (targetBody == null)
-                return Localizer.Format("#autoLOC_StatSciDoExp_TitleA");
-            else
-                return Localizer.Format("#autoLOC_StatSciDoExp_TitleB", targetBody.GetDisplayName());
-        }
-
-        private float lastUpdate = 0;
-
-        protected override void OnUpdate()
-        {
-            base.OnUpdate();
-            if (lastUpdate > UnityEngine.Time.realtimeSinceStartup + .1)
-                return;
-            CelestialBody targetBody = StnSciParameter.getTargetBody(this);
-            AvailablePart experimentType = StnSciParameter.getExperimentType(this);
-            if (targetBody == null || experimentType == null)
-            if (targetBody == null || experimentType == null)
-            {
-                return;
-            }
-            lastUpdate = UnityEngine.Time.realtimeSinceStartup;
-            Vessel vessel = FlightGlobals.ActiveVessel;
-            if (vessel != null)
-                foreach (Part part in vessel.Parts)
-                {
-                    if (part.name == experimentType.name)
-                    {
-                        StationExperiment e = part.FindModuleImplementing<StationExperiment>();
-                        if (e != null)
-                        {
-                            if (e.completed >= this.Root.DateAccepted && e.completed > e.launched)
-                            {
-                                ScienceData[] data = e.GetData();
-                                foreach (ScienceData datum in data)
-                                {
-                                    if (datum.subjectID.ToLower().Contains("@" + targetBody.name.ToLower() + "inspace"))
-                                    {
-                                        SetComplete();
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            SetIncomplete();
-        }
-
-        protected override void OnSave(ConfigNode node)
-        {
-            base.OnSave(node);
-        }
-        protected override void OnLoad(ConfigNode node)
-        {
-            base.OnLoad(node);
-            this.Enabled = true;
-        }
-    }
-
-    public class ReturnExperimentParameter : ContractParameter
-    {
-        public ReturnExperimentParameter()
-        {
-            this.Enabled = true;
-            this.DisableOnStateChange = false;
-        }
-
-        public void OnAccept(Contract contract)
-        {
-        }
-
-        protected override string GetHashString()
-        {
-            return "recover experiment " + this.GetHashCode();
-        }
-        protected override string GetTitle()
-        {
-            return Localizer.Format("#autoLOC_StatSciRetParam_Title");
-        }
-
-        protected override void OnRegister()
-        {
-            //GameEvents.OnVesselRecoveryRequested.Add(OnRecovery);
-            GameEvents.onVesselRecovered.Add(OnRecovered);
-        }
-        protected override void OnUnregister()
-        {
-            //GameEvents.OnVesselRecoveryRequested.Remove(OnRecovery);
-            GameEvents.onVesselRecovered.Remove(OnRecovered);
-        }
-
-        private void OnRecovered(ProtoVessel pv, bool dummy)
-        {
-            CelestialBody targetBody = StnSciParameter.getTargetBody(this);
-            AvailablePart experimentType = StnSciParameter.getExperimentType(this);
-            if (targetBody == null || experimentType == null)
-            {
-                return;
-            }
-            foreach (ProtoPartSnapshot part in pv.protoPartSnapshots)
-            {
-                if (part.partName == experimentType.name)
-                {
-                    foreach(ProtoPartModuleSnapshot module in part.modules)
-                    {
-                        if (module.moduleName == "StationExperiment")
-                        {
-                            ConfigNode cn = module.moduleValues;
-                            if (!cn.HasValue("launched") || !cn.HasValue("completed"))
-                                continue;
-                            float launched, completed;
-                            try
-                            {
-                                launched = float.Parse(cn.GetValue("launched"));
-                                completed = float.Parse(cn.GetValue("completed"));
-                            }
-                            catch(Exception e)
-                            {
-                                StnSciScenario.LogError(e.ToString());
-                                continue;
-                            }
-                            if (completed >= this.Root.DateAccepted)
-                            {
-                                foreach (ConfigNode datum in cn.GetNodes("ScienceData"))
-                                {
-                                    if (!datum.HasValue("subjectID"))
-                                        continue;
-                                    string subjectID = datum.GetValue("subjectID");
-                                    if (subjectID.ToLower().Contains("@" + targetBody.name.ToLower() + "inspace"))
-                                    {
-                                        StnSciParameter parent = this.Parent as StnSciParameter;
-                                        SetComplete();
-                                        if (parent != null)
-                                            parent.Complete();
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void OnRecovery(Vessel vessel)
-        {
-            StnSciScenario.Log("Recovering " + vessel.vesselName);
-            CelestialBody targetBody = StnSciParameter.getTargetBody(this);
-            AvailablePart experimentType = StnSciParameter.getExperimentType(this);
-            if (targetBody == null || experimentType == null)
-            {
-                return;
-            }
-            foreach (Part part in vessel.Parts)
-            {
-                if (part.name == experimentType.name)
-                {
-                    StationExperiment e = part.FindModuleImplementing<StationExperiment>();
-                    if (e != null)
-                    {
-                        if (e.launched >= this.Root.DateAccepted && e.completed >= e.launched)
-                        {
-                            ScienceData[] data = e.GetData();
-                            foreach (ScienceData datum in data)
-                            {
-                                if (datum.subjectID.ToLower().Contains("@" + targetBody.name.ToLower() + "inspace"))
-                                {
-                                    StnSciParameter parent = this.Parent as StnSciParameter;
-                                    SetComplete();
-                                    if (parent != null)
-                                        parent.Complete();
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            SetIncomplete();
-        }
-
-        protected override void OnSave(ConfigNode node)
-        {
-            base.OnSave(node);
-        }
+        // Loads the parameter's state from a config node
         protected override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
