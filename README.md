@@ -36,11 +36,11 @@ Station Science experiments are divided into four core disciplines:
 
 Each discipline has its own experiment tree that increases in complexity as you progress. Here's a breakdown of the experiment tiers:
 
-| **Discipline**        | **Tier 1**                     | **Tier 2**                  | **Tier 3**                          | **Tier 4**                    |
-|-----------------------|---------------------------------|-----------------------------|-------------------------------------|-------------------------------|
-| Biology / Plants       | Seed Growth                    | Nutritional Value            | Irradiated Plant Adaptation         | Transgenic Agriculture         |
-| Physiology / Creatures | Zoology Observations            | Creature Comforts            | Bio-Goo-volution                    | Super Creature Genesis         |
-| Physics / Kuarqs       | Prograde Kuarqs                | Retrograde Kuarqs            | Kuarq Bio-activity                  | Nu-Kuarq Particle Fusion       |
+| **Discipline**        | **Tier 1**                     | **Tier 2**                  | **Tier 3**                          |
+|-----------------------|---------------------------------|-----------------------------|-------------------------------------|
+| Biology / Plants       | Seed Growth                    | Nutritional Value            |
+| Physiology / Creatures | Zoology Observations            | Creature Comforts            |
+| Physics / Kuarqs       | Prograde Kuarqs                | Retrograde Kuarqs            | Kuarq Bio-activity                  |
 
 
 Each experiment requires resources such as *Eurekas*, *Bioproducts*, *Kuarqs*, or *Solutions* to complete. You’ll also need to finalize experiments by using the **Finalize Results** action, generating Science points. Make sure your space station stays in a stable orbit throughout the duration of the experiments to avoid aborting them.
@@ -52,6 +52,18 @@ Explore the mysteries of **Mystery Goo™** with the **Y-CKY Goo Chamber**, unlo
 | **Discipline**        | **Tier 1**                     | **Tier 2**                  | **Tier 3**                          | **Tier 4**                    |
 |-----------------------|---------------------------------|-----------------------------|-------------------------------------|-------------------------------|
 | Chemistry / Goo        | Mystery Goo™ Disclosure        | Goo Understanding            | Goo-induced Symbiosis               | Solved Goo™ Alchemy            |
+
+### Tier 4 Experiments (Coming Soon!)
+
+Exciting new **Tier 4** experiments are currently in development and will add even more depth to your space station research! These advanced experiments will offer powerful Science rewards and unlock new scientific discoveries in each research discipline:
+
+- **Biology / Plants**: Transgenic Agriculture
+- **Physiology / Creatures**: Super Creature Genesis
+- **Physics / Kuarqs**: Nu-Kuarq Particle Fusion
+- **Chemistry / Goo**: Solved Goo™ Alchemy
+
+Stay tuned for updates as these experiments will provide new challenges and further research opportunities in **Station Science**!
+
 
 ---
 
