@@ -17,11 +17,12 @@ The mod has undergone several updates, maintained by **@tomforwood** and **@linu
 
 > **Note:** The **WT-SIT Spectrometron** is currently deprecated due to game balancing.
 
-### Experiment Pods:
-Experiments are conducted using size 1 pods. These pods dock with your space station and are brought back to the surface or data can be transmitted back to Kerbin for Science points. Pods are not re-runnable, so plan accordingly.
-
 ### New Part: Y-CKY Goo Chamber (Coming Soon!)
 A new research module designed for bulk experimentation with **Mystery Goo™**. This specialized chamber will require significant quantities of Goo per experiment and will unlock a new **Chemistry** research chain.
+
+
+### Experiment Pods:
+Experiments are conducted using size 1 pods. These pods dock with your space station and are brought back to the surface or data can be transmitted back to Kerbin for Science points. Pods are not re-runnable, so plan accordingly.
 
 ---
 
