@@ -1,4 +1,4 @@
-Station Science v2.0+
+Station Science ReNewed (v3.0)
 Overview
 
 Station Science, originally developed by @ethernet, adds large, advanced research parts for space stations to conduct long-term experiments. These experiments generate valuable Science points, helping you progress through the tech tree and expand your knowledge of the Kerbal universe. This mod is ideal for creating research stations orbiting various celestial bodies, requiring strategic planning and resource management.
