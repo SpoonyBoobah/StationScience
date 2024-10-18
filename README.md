@@ -11,9 +11,9 @@ The mod has undergone several updates, maintained by **@tomforwood** and **@linu
 ## Parts and Experiments
 
 ### Key Parts:
-- **TH-NKR Research Lab**: Generates *Eurekas* for scientific experiments.
-- **F-RRY Zoology Bay**: Performs biological experiments, requiring *Kibbal*.
-- **D-ZZY Cyclotron**: Generates *Kuarqs* for physics experiments.
+- **TH-NKR Research Lab**: Generates *Eurekas* for Biology experiments.
+- **F-RRY Zoology Bay**: Generates Bioproducts for Physiology experiment, requiring *Kibbal*.
+- **D-ZZY Cyclotron**: Generates *Kuarqs* for Physics experiments.
 
 > **Note:** The **WT-SIT Spectrometron** is currently deprecated due to game balancing.
 
