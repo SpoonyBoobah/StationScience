@@ -46,10 +46,11 @@ Each discipline has its own experiment tree that increases in complexity as you 
 Each experiment requires resources such as *Eurekas*, *Bioproducts*, *Kuarqs*, or *Solutions* to complete. You’ll also need to finalize experiments by using the **Finalize Results** action, generating Science points. Make sure your space station stays in a stable orbit throughout the duration of the experiments to avoid aborting them.
 
 ### New Chemistry Research Chain: (Coming Soon!)
-Explore the mysteries of **Mystery Goo™** with the **Y-CKY Goo Chamber**, unlocking a whole new branch of research related to *Chemistry*. This will introduce advanced Goo-related experiments and interactions with existing disciplines.
+Explore the mysteries of **Mystery Goo™** with the **Y-CKY Goo Chamber**, unlocking a whole new branch of research related to *Chemistry*. This will introduce advanced Goo-related experiments and interactions with existing disciplines:
 
 
 | **Discipline**        | **Tier 1**                     | **Tier 2**                  | **Tier 3**                          | **Tier 4**                    |
+|-----------------------|---------------------------------|-----------------------------|-------------------------------------|-------------------------------|
 | Chemistry / Goo        | Mystery Goo™ Disclosure        | Goo Understanding            | Goo-induced Symbiosis               | Solved Goo™ Alchemy            |
 
 ---
