@@ -39,8 +39,8 @@ Each discipline has its own experiment tree that increases in complexity as you 
 | **Discipline**        | **Tier 1**                     | **Tier 2**                  | **Tier 3**                          |
 |-----------------------|---------------------------------|-----------------------------|-------------------------------------|
 | Biology / Plants       | Seed Growth                    | Nutritional Value            |
-| Physiology / Creatures | Zoology Observations            | Creature Comforts            |
-| Physics / Kuarqs       | Prograde Kuarqs                | Retrograde Kuarqs            | Kuarq Bio-activity                  |
+| Physiology / Creatures | Zoology Observations            | Creature Comforts            | Kuarq Bio-activity                  |
+| Physics / Kuarqs       | Prograde Kuarqs                | Retrograde Kuarqs            | Eccentric Kuarqs               |
 
 
 Each experiment requires resources such as *Eurekas*, *Bioproducts*, *Kuarqs*, or *Solutions* to complete. You’ll also need to finalize experiments by using the **Finalize Results** action, generating Science points. Make sure your space station stays in a stable orbit throughout the duration of the experiments to avoid aborting them.
