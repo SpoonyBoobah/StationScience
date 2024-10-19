@@ -49,9 +49,9 @@ Each experiment requires resources such as *Eurekas*, *Bioproducts*, *Kuarqs*, o
 Explore the mysteries of **Mystery Goo™** with the **Y-CKY Goo Chamber**, unlocking a whole new branch of research related to *Chemistry*. This will introduce advanced Goo-related experiments and interactions with existing disciplines:
 
 
-| **Discipline**        | **Tier 1**                     | **Tier 2**                  | **Tier 3**                          | **Tier 4**                    |
-|-----------------------|---------------------------------|-----------------------------|-------------------------------------|-------------------------------|
-| Chemistry / Goo        | Mystery Goo™ Disclosure        | Goo Understanding            | Goo-induced Symbiosis               | Solved Goo™ Alchemy            |
+| **Discipline**        | **Tier 1**                     | **Tier 2**                  |
+|-----------------------|---------------------------------|-----------------------------|
+| Chemistry / Goo        | Mystery Goo™ Disclosure        | Goo Understanding            |
 
 ### Tier 4 Experiments (Coming Soon!)
 
