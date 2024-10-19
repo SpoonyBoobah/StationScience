@@ -6,6 +6,8 @@
 
 The mod has undergone several updates, maintained by **@tomforwood** and **@linuxgurugamer**, and is now part of the **Spoony Industries** family under the development of **@spoonyboobah**. The acquisition of the Station Science Directorate by **Spoony Kerman** promises exciting new developments and additional funding for future research projects!
 
+The mod has been completely revamped from the ground up, I have gone through all the code and restored it. The Arcanum Fuel Science pack has been removed as this was very bodged together and patched on top of StationScience. So I have removed it and it will not be returning due to me removing the ModuleCostlyScience from the mod as it essentially bodged the core code of StationScience.
+
 ---
 
 ## Parts and Experiments
@@ -89,6 +91,7 @@ The contract system will be expanded, providing more opportunities for advanced 
 
 1. If you have any bugs involving the buttons/fields in the Part Action Window acting strange and you have KSP Community Fixes installed, remove KSP CF and run the game without it, then reinstall. KSP CF has a PAW fix that caches PAW fields into memory and this can cause weird issues.
 2. KSP crashing on installing StationScience?, fixed by deleting the ModuleManager cache as this will force the cache to be rebuilt.
+3. You may get a log spam message of "[STNSCI-MOD] Error: 'status' field value is null." this is a bug with the stock KSP converter not properly having a "status" and yet it is still running fine. You can either ignore this but it will generate log spam. You can fix this by turning the relevant Lab Moudle off and on again to regenerate the "status".
 
 ---
 
@@ -105,4 +108,4 @@ For more information, check out the [GitHub repository](https://github.com/Spoon
 - Originally created by **@ethernet**
 - Updated to v2.0 by **@tomforwood**
 - Maintained by **@linuxgurugamer**
-- Now under active development by **@spoonyboobah** and **@SpeedyB64
+- Now under active development by **@spoonyboobah** and **@SpeedyB64**
