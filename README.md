@@ -92,8 +92,6 @@ The contract system will be expanded, providing more opportunities for advanced 
 
 ---
 
----
-
 ## Licensing
 
 - Source code and software (.cs and .dll files) are licensed under the GPL v3.
