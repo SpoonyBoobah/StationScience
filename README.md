@@ -85,12 +85,21 @@ The contract system will be expanded, providing more opportunities for advanced 
 
 ---
 
+## Potential Issues
+
+1. If you have any bugs involving the buttons/fields in the Part Action Window acting strange and you have KSP Community Fixes installed, remove KSP CF and run the game without it, then reinstall. KSP CF has a PAW fix that caches PAW fields into memory and this can cause weird issues.
+2. KSP crashing on installing StationScience?, fixed by deleting the ModuleManager cache as this will force the cache to be rebuilt.
+
+---
+
+---
+
 ## Licensing
 
 - Source code and software (.cs and .dll files) are licensed under the GPL v3.
 - Other assets (textures, models, etc.) are licensed under Creative Commons Attribution Share-Alike.
 
-For more information, check out the [GitHub repository](https://github.com/linuxgurugamer/StationScience).
+For more information, check out the [GitHub repository](https://github.com/SpoonyBoobah/StationScience).
 
 ---
 
@@ -98,4 +107,4 @@ For more information, check out the [GitHub repository](https://github.com/linux
 - Originally created by **@ethernet**
 - Updated to v2.0 by **@tomforwood**
 - Maintained by **@linuxgurugamer**
-- Now under active development by **@spoonyboobah**
+- Now under active development by **@spoonyboobah** and **@SpeedyB64
