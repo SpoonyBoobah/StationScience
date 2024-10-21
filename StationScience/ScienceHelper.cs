@@ -16,7 +16,7 @@
 */
 
 using System;
-using UnityEngine; // Assuming you're using UnityEngine for Vessel and CelestialBody
+using UnityEngine; 
 
 namespace StationScience
 {
