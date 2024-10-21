@@ -24,7 +24,7 @@ A new research module designed for bulk experimentation with **Mystery Goo™**.
 
 
 ### Experiment Pods:
-Experiments are conducted using size 1 pods. These pods dock with your space station and are brought back to the surface or data can be transmitted back to Kerbin for Science points. Pods are not re-runnable, so plan accordingly.
+Experiments are conducted using size 1 pods. These pods dock with your space station and are brought back to the surface or data can be transmitted back to Kerbin for Science points. Pods are mostly not re-runnable as once the data is transmitted you will receive no further Science Points by transmitting so you MUST return the pod for 100% of Science Points available, so plan accordingly. However, using a MPL you will be able to reset certain Experiment Pods for example, you have conducted a Nutritional Value experiment over Duna, once transmitted, you can reset the Pod using the MPL and then send it to Ike to do the experiment there... 
 
 ---
 
