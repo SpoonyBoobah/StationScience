@@ -23,7 +23,7 @@ using UnityEngine;
 
 namespace StationScience
 {
-    public class StnSciContractReward : IConfigNode
+    public class StnSciContractReward
     {
         [Persistent] public float y_intercept;
         [Persistent] public float slope;
@@ -66,7 +66,7 @@ namespace StationScience
         }
     }
 
-    public class CNMap<TValue> : Dictionary<string, TValue>, IConfigNode where TValue : IConvertible
+    public class CNMap<TValue> : Dictionary<string, TValue> where TValue : IConvertible
     {
         public void Load(ConfigNode node)
         {
@@ -129,7 +129,7 @@ namespace StationScience
         }
     }
 
-    public class StnSciSettings : IConfigNode
+    public class StnSciSettings
     {
         [Persistent] public int maxContracts = 4;
         [Persistent] public float progressionFactor = 0.5f;
@@ -212,6 +212,11 @@ namespace StationScience
             print("StnSciContractsUpdater started");
             GameEvents.Contract.onContractsLoaded.Add(OnContractsLoaded);
             started = true;
+        }
+
+        void OnDestroy()
+        {
+            GameEvents.Contract.onContractsLoaded.Remove(OnContractsLoaded);
         }
 
         public void OnContractsLoaded()

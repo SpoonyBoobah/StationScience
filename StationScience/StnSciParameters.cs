@@ -27,7 +27,7 @@ using KSP.Localization;
 
 namespace StationScience.Contracts.Parameters
 {
-    
+
     public interface PartRelated
     {
         AvailablePart GetPartType();
@@ -201,9 +201,9 @@ namespace StationScience.Contracts.Parameters
             }
         }
 
-        private void OnVesselSituationChange(GameEvents.HostedFromToAction<Vessel,Vessel.Situations> arg)
+        private void OnVesselSituationChange(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> arg)
         {
-            if(!((arg.from == Vessel.Situations.LANDED || arg.from == Vessel.Situations.PRELAUNCH) &&
+            if (!((arg.from == Vessel.Situations.LANDED || arg.from == Vessel.Situations.PRELAUNCH) &&
                   (arg.to == Vessel.Situations.FLYING || arg.to == Vessel.Situations.SUB_ORBITAL)))
                 return;
             if (arg.host.mainBody.name != "Kerbin")
@@ -316,10 +316,10 @@ namespace StationScience.Contracts.Parameters
             CelestialBody targetBody = StnSciParameter.getTargetBody(this);
             AvailablePart experimentType = StnSciParameter.getExperimentType(this);
             if (targetBody == null || experimentType == null)
-            if (targetBody == null || experimentType == null)
-            {
-                return;
-            }
+                if (targetBody == null || experimentType == null)
+                {
+                    return;
+                }
             lastUpdate = UnityEngine.Time.realtimeSinceStartup;
             Vessel vessel = FlightGlobals.ActiveVessel;
             if (vessel != null)
@@ -403,7 +403,7 @@ namespace StationScience.Contracts.Parameters
             {
                 if (part.partName == experimentType.name)
                 {
-                    foreach(ProtoPartModuleSnapshot module in part.modules)
+                    foreach (ProtoPartModuleSnapshot module in part.modules)
                     {
                         if (module.moduleName == "StationExperiment")
                         {
@@ -416,7 +416,7 @@ namespace StationScience.Contracts.Parameters
                                 launched = float.Parse(cn.GetValue("launched"));
                                 completed = float.Parse(cn.GetValue("completed"));
                             }
-                            catch(Exception e)
+                            catch (Exception e)
                             {
                                 StnSciScenario.LogError(e.ToString());
                                 continue;
