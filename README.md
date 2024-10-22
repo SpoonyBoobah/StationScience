@@ -78,6 +78,8 @@ In **Career Mode**, contracts for station science experiments become available o
 ### Upcoming Contract Overhaul: (Coming Soon!)
 The contract system will be expanded, providing more opportunities for proper station-based science missions across the solar system.
 
+
+### Private Experiments (Coming Soon for Career Mode Only!)
 Also, new "Private" experiment pods will be coming soon... where a private science corporation has reached out to conduct a science experiment on your space station, this will reward you no science points, however the corp will payout handsomely for helping them with their research.
 
 ---
