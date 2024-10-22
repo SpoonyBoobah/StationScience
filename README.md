@@ -47,7 +47,7 @@ Each discipline has its own experiment tree that increases in complexity as you 
 
 Each experiment requires resources such as *Eurekas*, *Bioproducts*, *Kuarqs*, or *Solutions* to complete. You’ll also need to finalize experiments by using the **Finalize Results** action, generating Science points. Make sure your space station stays in a stable orbit throughout the duration of the experiments to avoid aborting them.
 
-###NEXT EXPERIMENT RELEASE: Irridiated Plant Adaptaion - Biology/Physics Hybrid Experiment - Tier 3###
+### NEXT EXPERIMENT RELEASE: Irridiated Plant Adaptaion - Biology/Physics Hybrid Experiment - Tier 3 ###
 Scientists have requested to conduct a experiment to see how your plants can adapt to hostile spacey environments and explore other space hazards. Your mission is to blast these potted plants with kuarqs and see how the plants and the kuarqs react to each other. You will also need to keep some poor creatures in the nearby to act as an medium for "unfortuante exposure" and study their bioproducts. You will need a TH-NKR Research Lab, a F-RRY Zoology Bay and 1x D-ZZY Cyclotron. Note: don't attach directly to your station, you MUST return it to the surface to complete. Subject to change.
 
 
