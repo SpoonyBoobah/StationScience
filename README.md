@@ -76,7 +76,9 @@ In **Career Mode**, contracts for station science experiments become available o
 2. Return the experiment pod to Kerbin for recovery and completion.
 
 ### Upcoming Contract Overhaul: (Coming Soon!)
-The contract system will be expanded, providing more opportunities for advanced station-based science missions across the solar system.
+The contract system will be expanded, providing more opportunities for proper station-based science missions across the solar system.
+
+Also, new "Private" experiment pods will be coming soon... where a private science corporation has reached out to conduct a science experiment on your space station, this will reward you no science points, however the corp will payout handsomely for helping them with their research.
 
 ---
 
