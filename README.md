@@ -38,7 +38,7 @@ Station Science experiments are divided into four core disciplines:
 
 Each discipline has its own experiment tree that increases in complexity as you progress. Here's a breakdown of the experiment tiers:
 
-| **Discipline**        | **Tier 1**                     | **Tier 2**                  | **Tier 3**                          |
+| **Discipline**        | **Tier 1 - Basic**                     | **Tier 2 - Intermediate**                  | **Tier 3 - Hybrid/Advanced**                          |
 |-----------------------|---------------------------------|-----------------------------|-------------------------------------|
 | Biology / Plants       | Seed Growth                    | Nutritional Value            |
 | Physiology / Creatures | Zoology Observations            | Creature Comforts            | Kuarq Bio-activity                  |
