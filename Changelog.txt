@@ -85,6 +85,7 @@ Changelog
 	Complete rebuild of Station Science by @spoonyboobah
 	WT-SIT Spectrometron deprecated due to game balancing
 	Restored Nutritional Value and Zoology Observations as it seemed to be bugged
+	Restored original 2.0 models by removing Fuel Science add-on
 	Improved PAW menu and resotred functionality
 	@speedyb64 working on new models
 	Reworked Experiment stats to be more "long-term" focused e.g. Seed Growth will take 4 Kerbin days with 2 5-star scienctists in the Research Lab
