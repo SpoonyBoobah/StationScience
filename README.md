@@ -13,7 +13,7 @@ The mod has been completely revamped from the ground up, I have gone through all
 ## Parts and Experiments
 
 ### Key Parts:
-- **TH-NKR Research Lab**: Generates *Eurekas* for Biology experiments.
+- **TH-NKR Research Lab**: Generates *Eurekas* for Biology and all other experiments.
 - **F-RRY Zoology Bay**: Generates *Bioproducts* for Physiology experiments, requiring *Kibbal*.
 - **D-ZZY Cyclotron**: Generates *Kuarqs* for Physics experiments.
 
